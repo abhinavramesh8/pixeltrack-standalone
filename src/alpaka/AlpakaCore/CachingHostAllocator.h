@@ -387,11 +387,6 @@ namespace cms::alpaka::allocator {
         search_key.buf = cms::alpakatools::allocHostBuf<TData>(extent);
         ::alpaka::prepareForAsyncCopy(search_key.buf);
 
-        // Create ready event
-        search_key.ready_event = ::alpaka::Event<ALPAKA_ACCELERATOR_NAMESPACE::Queue> {
-          ALPAKA_ACCELERATOR_NAMESPACE::device
-        };
-
         // Insert into live blocks
         mutex_locker.lock();
         live_blocks.insert(search_key);

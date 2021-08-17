@@ -7,7 +7,8 @@ namespace cms::alpaka {
   // Allocate pinned host memory (to be called from unique_ptr)
   template <typename TData>
   auto allocate_host(
-    const Extent& extent, const ALPAKA_ACCELERATOR_NAMESPACE::Queue& queue) 
+    const alpaka_common::Extent& extent, 
+    const ALPAKA_ACCELERATOR_NAMESPACE::Queue& queue) 
   {
     static const size_t maxAllocationSize = 
       allocator::CachingDeviceAllocator<TData>::IntPow(allocator::binGrowth, allocator::maxBin);   

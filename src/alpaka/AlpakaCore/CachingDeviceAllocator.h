@@ -140,7 +140,7 @@ namespace cms::alpaka::allocator {
       // Constructor (suitable for searching maps for a range of suitable blocks, given a device)
       BlockDescriptor(const ALPAKA_ACCELERATOR_NAMESPACE::DevAcc1& dev,
                       const ALPAKA_ACCELERATOR_NAMESPACE::Queue& queue)
-          : buf(cms::alpakatools::allocDeviceBuf<TData>(alpaka_common::Extent{})),
+          : buf(::alpaka::allocBuf<TData, alpaka_common::Idx>(dev, alpaka_common::Extent{})),
             bytes(0),
             bytesRequested(0),  // CMS
             bin(INVALID_BIN),
@@ -325,7 +325,7 @@ namespace cms::alpaka::allocator {
      */
     auto DeviceAllocate(
         const ALPAKA_ACCELERATOR_NAMESPACE::DevAcc1& device,     ///< [in] Device on which to place the allocation
-        const Extent& extent,                                    ///< [in] Extent of the allocation
+        const alpaka_common::Extent& extent,                     ///< [in] Extent of the allocation
         const ALPAKA_ACCELERATOR_NAMESPACE::Queue& active_queue) ///< [in] The queue to be associated with this allocation
     {
       // CMS: use RAII instead of (un)locking explicitly
@@ -401,10 +401,7 @@ namespace cms::alpaka::allocator {
 
       // Allocate the block if necessary
       if (!found) {
-        search_key.buf = alpakatools::allocDeviceBuf<TData>(extent);
-
-        // Create ready event
-        search_key.ready_event = ::alpaka::Event<ALPAKA_ACCELERATOR_NAMESPACE::Queue> {device};
+        search_key.buf = ::alpaka::allocBuf<TData, alpaka_common::Idx>(device, extent);
 
         // Insert into live blocks
         mutex_locker.lock();
