@@ -8,7 +8,7 @@
 #include "getCachingDeviceAllocator.h"
 
 namespace cms::alpaka::allocator {
-  template <class TData>
+  template <typename TData>
   inline CachingHostAllocator<TData>& getCachingHostAllocator() {
     if (debug) {
       std::cout << "CachingHostAllocator settings\n"

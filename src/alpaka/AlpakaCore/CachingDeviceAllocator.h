@@ -330,7 +330,7 @@ namespace cms::alpaka::allocator {
     {
       // CMS: use RAII instead of (un)locking explicitly
       std::unique_lock<std::mutex> mutex_locker(mutex, std::defer_lock);
-      size_t bytes = sizeof(TData) * extent;
+      size_t bytes = alpakatools::nbytesFromExtent<TData>(extent);
       
       // Create a block descriptor for the requested allocation
       bool found = false;
@@ -401,7 +401,7 @@ namespace cms::alpaka::allocator {
 
       // Allocate the block if necessary
       if (!found) {
-        search_key.buf = cms::alpakatools::allocDeviceBuf<TData>(extent);
+        search_key.buf = alpakatools::allocDeviceBuf<TData>(extent);
 
         // Create ready event
         search_key.ready_event = ::alpaka::Event<ALPAKA_ACCELERATOR_NAMESPACE::Queue> {device};

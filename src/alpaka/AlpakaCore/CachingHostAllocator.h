@@ -96,7 +96,7 @@ namespace cms::alpaka::allocator {
  * and sets a maximum of 6,291,455 cached bytes
  *
  */
-  template <class TData>
+  template <typename TData>
   struct CachingHostAllocator {
     //---------------------------------------------------------------------
     // Constants
@@ -312,7 +312,7 @@ namespace cms::alpaka::allocator {
         const ALPAKA_ACCELERATOR_NAMESPACE::Queue& active_queue) ///< [in] The queue to be associated with this allocation
     {
       std::unique_lock<std::mutex> mutex_locker(mutex, std::defer_lock);
-      size_t bytes = sizeof(TData) * extent;
+      size_t bytes = cms::alpakatools::nbytesFromExtent<TData>(extent);
 
       // Create a block descriptor for the requested allocation
       bool found = false;
