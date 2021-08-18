@@ -22,6 +22,16 @@ namespace cms {
       template <typename TData>
       using unique_ptr = std::unique_ptr<alpaka_common::AlpakaHostBuf<TData>, impl::HostDeleter<TData> >;
     }    // namespace host
+    
+    // No check for the trivial constructor, make it clear in the interface
+    template <typename TData>
+    typename host::unique_ptr<TData> make_host_unique_uninitialized(
+      const alpaka_common::Extent& extent, 
+      const ALPAKA_ACCELERATOR_NAMESPACE::Queue& queue) 
+    {
+      auto buf_ptr {new alpaka_common::AlpakaHostBuf<TData> {allocate_host<TData>(extent, queue)}};
+      return typename host::unique_ptr<TData> {buf_ptr};
+    }
 
     // Allocate pinned host memory
     template <typename TData>
@@ -31,18 +41,7 @@ namespace cms {
     {
       static_assert(std::is_trivially_constructible<TData>::value,
                     "Allocating with non-trivial constructor on the pinned host memory is not supported");
-      auto buf_ptr {new AlpakaHostBuf<TData> {allocate_host<TData>(extent, queue)}};
-      return typename host::unique_ptr<TData> {buf_ptr};
-    }
-
-    // No check for the trivial constructor, make it clear in the interface
-    template <typename TData>
-    typename host::unique_ptr<TData> make_host_unique_uninitialized(
-      const alpaka_common::Extent& extent, 
-      const ALPAKA_ACCELERATOR_NAMESPACE::Queue& queue) 
-    {
-      auto buf_ptr {new AlpakaHostBuf<TData> {allocate_host<TData>(extent, queue)}};
-      return typename host::unique_ptr<TData> {buf_ptr};
+      return make_host_unique_uninitialized<TData>(extent, queue);
     }
   }  // namespace alpaka
 }  // namespace cms
