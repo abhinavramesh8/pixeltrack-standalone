@@ -25,10 +25,9 @@ namespace cms::alpaka {
 
   // Free pinned host memory (to be called from unique_ptr)
   template <typename TData>
-  void free_host(alpaka_common::AlpakaHostBuf<TData> &buf) {
-    auto host_buf {std::move(buf)};
+  void free_host(const alpaka_common::AlpakaHostBuf<TData> &buf) {
     if constexpr (allocator::policy == allocator::Policy::Caching) {
-      allocator::getCachingHostAllocator<TData>().HostFree(host_buf);
+      allocator::getCachingHostAllocator<TData>().HostFree(buf);
     }
   }
 }  // namespace cms::alpaka

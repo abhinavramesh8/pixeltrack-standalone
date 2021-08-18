@@ -125,8 +125,8 @@ namespace cms::alpaka::allocator {
       ::alpaka::Event<ALPAKA_ACCELERATOR_NAMESPACE::Queue> ready_event; // Signal when associated queue has run to the point at which this block was freed
 
       // Constructor (suitable for searching maps for a specific block, given its buffer)
-      BlockDescriptor(alpaka_common::AlpakaHostBuf<TData> buffer)
-          : buf(std::move(buffer)),
+      BlockDescriptor(const alpaka_common::AlpakaHostBuf<TData> &buffer)
+          : buf(buffer),
             bytes(0),
             bin(INVALID_BIN),
             device(ALPAKA_ACCELERATOR_NAMESPACE::device),
@@ -423,13 +423,13 @@ namespace cms::alpaka::allocator {
      *
      * Once freed, the allocation becomes available immediately for reuse.
      */
-    void HostFree(alpaka_common::AlpakaHostBuf<TData> &buf) {
+    void HostFree(const alpaka_common::AlpakaHostBuf<TData> &buf) {
       // Lock
       std::unique_lock<std::mutex> mutex_locker(mutex);
 
       // Find corresponding block descriptor
       bool recached = false;
-      BlockDescriptor search_key(std::move(buf));
+      BlockDescriptor search_key(buf);
       auto block_itr = live_blocks.find(search_key);
       if (block_itr != live_blocks.end()) {
         // Remove from live blocks
