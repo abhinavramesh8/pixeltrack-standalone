@@ -127,9 +127,9 @@ namespace cms::alpaka::allocator {
       ::alpaka::Event<ALPAKA_ACCELERATOR_NAMESPACE::Queue> ready_event; // Signal when associated queue has run to the point at which this block was freed
 
       // Constructor (suitable for searching maps for a specific block, given its buffer and device)
-      BlockDescriptor(ALPAKA_ACCELERATOR_NAMESPACE::AlpakaDeviceBuf<TData> buffer, 
+      BlockDescriptor(const ALPAKA_ACCELERATOR_NAMESPACE::AlpakaDeviceBuf<TData>& buffer, 
                       const ALPAKA_ACCELERATOR_NAMESPACE::DevAcc1& dev)
-          : buf(std::move(buffer)),
+          : buf(buffer),
             bytes(0),
             bytesRequested(0),  // CMS
             bin(INVALID_BIN),
@@ -455,7 +455,7 @@ namespace cms::alpaka::allocator {
      */
     void DeviceFree(
       const ALPAKA_ACCELERATOR_NAMESPACE::DevAcc1& device, 
-      ALPAKA_ACCELERATOR_NAMESPACE::AlpakaDeviceBuf<TData> &buf) 
+      const ALPAKA_ACCELERATOR_NAMESPACE::AlpakaDeviceBuf<TData> &buf) 
     {
       // CMS: use RAII instead of (un)locking explicitly
       std::unique_lock<std::mutex> mutex_locker(mutex, std::defer_lock);
@@ -465,7 +465,7 @@ namespace cms::alpaka::allocator {
 
       // Find corresponding block descriptor
       bool recached = false;
-      BlockDescriptor search_key(std::move(buf), device);
+      BlockDescriptor search_key(buf, device);
       auto block_itr = live_blocks.find(search_key);
       if (block_itr != live_blocks.end()) {
         // Remove from live blocks
@@ -531,7 +531,7 @@ namespace cms::alpaka::allocator {
      * with which it was associated with during allocation, and it becomes available for reuse within other
      * queues when all prior work submitted to \p active_queue has completed.
      */
-    void DeviceFree(ALPAKA_ACCELERATOR_NAMESPACE::AlpakaDeviceBuf<TData> &buf) { 
+    void DeviceFree(const ALPAKA_ACCELERATOR_NAMESPACE::AlpakaDeviceBuf<TData> &buf) { 
       return DeviceFree(ALPAKA_ACCELERATOR_NAMESPACE::device, buf); 
     }
 

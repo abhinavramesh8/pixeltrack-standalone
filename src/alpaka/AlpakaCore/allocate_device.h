@@ -34,11 +34,10 @@ namespace cms::alpaka {
   template <typename TData>
   void free_device(
     const ALPAKA_ACCELERATOR_NAMESPACE::DevAcc1 &device,
-    ALPAKA_ACCELERATOR_NAMESPACE::AlpakaDeviceBuf<TData> &buf) 
+    const ALPAKA_ACCELERATOR_NAMESPACE::AlpakaDeviceBuf<TData> &buf) 
   {
-    auto dev_buf {std::move(buf)};
     if constexpr (allocator::policy == allocator::Policy::Caching) {
-      allocator::getCachingDeviceAllocator<TData>().DeviceFree(device, dev_buf);
+      allocator::getCachingDeviceAllocator<TData>().DeviceFree(device, buf);
     }
   }
 }  // namespace cms::alpaka
