@@ -3,7 +3,7 @@
 
 #include "AlpakaCore/getCachingDeviceAllocator.h"
 
-namespace cms::alpaka {
+namespace cms::alpakatools {
   // Allocate device memory
   template <typename TData>
   auto allocate_device(
@@ -40,6 +40,6 @@ namespace cms::alpaka {
       allocator::getCachingDeviceAllocator<TData>().DeviceFree(device, buf);
     }
   }
-}  // namespace cms::alpaka
+}  // namespace cms::alpakatools
 
 #endif

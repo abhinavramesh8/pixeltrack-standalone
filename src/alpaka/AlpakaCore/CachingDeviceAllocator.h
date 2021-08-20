@@ -47,7 +47,7 @@
 #include "AlpakaCore/deviceAllocatorStatus.h"
 
 /// cms::alpaka::allocator namespace
-namespace cms::alpaka::allocator {
+namespace cms::alpakatools::allocator {
 
   /**
  * \addtogroup UtilMgmt
@@ -372,7 +372,7 @@ namespace cms::alpaka::allocator {
             // Remove from free blocks
             cached_bytes[device].free -= search_key.bytes;
             cached_bytes[device].live += search_key.bytes;
-            cached_bytes[device].liveRequested += search_key.bytesRequested;  // CMS
+            cached_bytes[device].liveRequested += search_key.bytesRequested;  // 
 
             /*if (debug)
               // CMS: improved debug message
@@ -394,7 +394,6 @@ namespace cms::alpaka::allocator {
           }
           block_itr++;
         }
-
         // Done searching: unlock
         mutex_locker.unlock();
       }
@@ -409,6 +408,7 @@ namespace cms::alpaka::allocator {
         cached_bytes[device].live += search_key.bytes;
         cached_bytes[device].liveRequested += search_key.bytesRequested;  // CMS
         mutex_locker.unlock();
+        
 
         /*if (debug)
           // CMS: improved debug message
@@ -428,7 +428,6 @@ namespace cms::alpaka::allocator {
                (long long)cached_bytes[device].free,
                (long long)live_blocks.size(),
                (long long)cached_bytes[device].live);*/
-
       return search_key.buf;  
     }
 
@@ -548,7 +547,6 @@ namespace cms::alpaka::allocator {
 
         // Reduce balance and erase entry
         cached_bytes[begin->device].free -= begin->bytes;
-
         /*
         if (debug)
           printf(
@@ -561,10 +559,8 @@ namespace cms::alpaka::allocator {
               (long long)live_blocks.size(),
               (long long)cached_bytes[current_device].live);
         */
-
         cached_blocks.erase(begin);
       }
-
       mutex_locker.unlock();
     }
 
@@ -586,6 +582,6 @@ namespace cms::alpaka::allocator {
 
   /** @} */  // end group UtilMgmt
 
-}  // namespace cms::alpaka::allocator
+}  // namespace cms::alpakatools::allocator
 
 #endif

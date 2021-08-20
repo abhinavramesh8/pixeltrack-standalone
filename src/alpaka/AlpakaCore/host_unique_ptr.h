@@ -6,14 +6,14 @@
 #include "AlpakaCore/allocate_host.h"
 
 namespace cms {
-  namespace alpaka {
+  namespace alpakatools {
     namespace host {
       namespace impl {
         template <typename TData>
         class HostDeleter {
         public:
           void operator()(alpaka_common::AlpakaHostBuf<TData> *buf_ptr) { 
-            cms::alpaka::free_host<TData>(*buf_ptr);
+            cms::alpakatools::free_host<TData>(*buf_ptr);
             delete buf_ptr; 
           }
         };
@@ -43,7 +43,7 @@ namespace cms {
                     "Allocating with non-trivial constructor on the pinned host memory is not supported");
       return make_host_unique_uninitialized<TData>(extent, queue);
     }
-  }  // namespace alpaka
+  }  // namespace alpakatools
 }  // namespace cms
 
 #endif

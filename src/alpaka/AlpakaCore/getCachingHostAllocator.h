@@ -7,7 +7,7 @@
 #include "CachingHostAllocator.h"
 #include "getCachingDeviceAllocator.h"
 
-namespace cms::alpaka::allocator {
+namespace cms::alpakatools::allocator {
   template <typename TData>
   inline CachingHostAllocator<TData>& getCachingHostAllocator() {
     if (debug) {
@@ -40,6 +40,6 @@ namespace cms::alpaka::allocator {
                                                  debug};
     return allocator;
   }
-}  // namespace cms::alpaka::allocator
+}  // namespace cms::alpakatools::allocator
 
 #endif

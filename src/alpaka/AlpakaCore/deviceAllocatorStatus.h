@@ -6,7 +6,7 @@
 #include "AlpakaCore/alpakaConfig.h"
 
 namespace cms {
-  namespace alpaka {
+  namespace alpakatools {
     namespace allocator {
       struct TotalBytes {
         size_t free;
@@ -16,7 +16,7 @@ namespace cms {
       };
 
       inline const auto& getDevs() {
-        static const auto devices = ::alpaka::getDevs<ALPAKA_ACCELERATOR_NAMESPACE::PltfAcc1>();
+        static const auto devices = alpaka::getDevs<ALPAKA_ACCELERATOR_NAMESPACE::PltfAcc1>();
         return devices;
       }
       
@@ -38,7 +38,7 @@ namespace cms {
       /// Map device to the number of bytes cached by it
       using DeviceCachedBytes = std::map<ALPAKA_ACCELERATOR_NAMESPACE::DevAcc1, TotalBytes, DeviceIdxCompare>;
     }  // namespace allocator
-  }  // namespace alpaka
+  }  // namespace alpakatools
 }  // namespace cms
 
 #endif

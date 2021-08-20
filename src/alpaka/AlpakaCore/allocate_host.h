@@ -3,7 +3,7 @@
 
 #include "AlpakaCore/getCachingHostAllocator.h"
 
-namespace cms::alpaka {
+namespace cms::alpakatools {
   // Allocate pinned host memory (to be called from unique_ptr)
   template <typename TData>
   auto allocate_host(
@@ -30,6 +30,6 @@ namespace cms::alpaka {
       allocator::getCachingHostAllocator<TData>().HostFree(buf);
     }
   }
-}  // namespace cms::alpaka
+}  // namespace cms::alpakatools
 
 #endif

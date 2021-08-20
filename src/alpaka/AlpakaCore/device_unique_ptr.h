@@ -6,7 +6,7 @@
 #include "AlpakaCore/allocate_device.h"
 
 namespace cms {
-  namespace alpaka {
+  namespace alpakatools {
     namespace device {
       namespace impl {
         template <typename TData>
@@ -15,7 +15,7 @@ namespace cms {
           DeviceDeleter(const ALPAKA_ACCELERATOR_NAMESPACE::DevAcc1& dev) : device_{dev} {}
 
           void operator()(ALPAKA_ACCELERATOR_NAMESPACE::AlpakaDeviceBuf<TData> *buf_ptr) {
-            cms::alpaka::free_device<TData>(device_, *buf_ptr);
+            cms::alpakatools::free_device<TData>(device_, *buf_ptr);
             delete buf_ptr;
           }
 
@@ -50,7 +50,7 @@ namespace cms {
                     "Allocating with non-trivial constructor on the device memory is not supported");
       return make_device_unique_uninitialized<TData>(extent, queue);
     }
-  }  // namespace alpaka
+  }  // namespace alpakatools
 }  // namespace cms
 
 #endif

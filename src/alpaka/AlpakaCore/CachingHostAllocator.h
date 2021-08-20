@@ -46,7 +46,7 @@
 #include "AlpakaCore/alpakaMemoryHelper.h"
 
 /// cms::alpaka::allocator namespace
-namespace cms::alpaka::allocator {
+namespace cms::alpakatools::allocator {
 
   /**
  * \addtogroup UtilMgmt
@@ -527,6 +527,6 @@ namespace cms::alpaka::allocator {
 
   /** @} */  // end group UtilMgmt
 
-} // namespace cms::alpaka::allocator
+} // namespace cms::alpakatools::allocator
 
 #endif

@@ -6,7 +6,7 @@
 
 #include "AlpakaCore/CachingDeviceAllocator.h"
 
-namespace cms::alpaka::allocator {
+namespace cms::alpakatools::allocator {
   // Use caching or not
   enum class Policy { Synchronous = 0, Asynchronous = 1, Caching = 2 };
 #ifndef ALPAKA_DISABLE_CACHING_ALLOCATOR
@@ -72,6 +72,6 @@ namespace cms::alpaka::allocator {
                                                    debug};
     return allocator;
   }
-}  // namespace cms::alpaka::allocator
+}  // namespace cms::alpakatools::allocator
 
 #endif
