@@ -15,8 +15,10 @@ namespace cms {
           DeviceDeleter(const ALPAKA_ACCELERATOR_NAMESPACE::DevAcc1& dev) : device_{dev} {}
 
           void operator()(ALPAKA_ACCELERATOR_NAMESPACE::AlpakaDeviceBuf<TData> *buf_ptr) {
-            cms::alpakatools::free_device<TData>(device_, *buf_ptr);
-            delete buf_ptr;
+            if (buf_ptr) {
+              cms::alpakatools::free_device<TData>(device_, *buf_ptr);
+              delete buf_ptr;
+            }
           }
 
         private:

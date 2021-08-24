@@ -13,8 +13,10 @@ namespace cms {
         class HostDeleter {
         public:
           void operator()(alpaka_common::AlpakaHostBuf<TData> *buf_ptr) { 
-            cms::alpakatools::free_host<TData>(*buf_ptr);
-            delete buf_ptr; 
+            if (buf_ptr) {
+              cms::alpakatools::free_host<TData>(*buf_ptr);
+              delete buf_ptr;
+            } 
           }
         };
       }  // namespace impl
