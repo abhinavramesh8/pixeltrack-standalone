@@ -20,23 +20,13 @@ namespace cms {
         return devices;
       }
       
-      inline size_t getIdxOfDev(const ALPAKA_ACCELERATOR_NAMESPACE::DevAcc1& device) {
-        return static_cast<size_t>(
-          std::find(getDevs().begin(), getDevs().end(), device) - 
-          getDevs().begin()
-        );
+      inline int getIdxOfDev(const ALPAKA_ACCELERATOR_NAMESPACE::DevAcc1& device) {
+        return (std::find(getDevs().begin(), getDevs().end(), device) - 
+                getDevs().begin());
       }
-
-      struct DeviceIdxCompare {
-        bool operator()(
-          const ALPAKA_ACCELERATOR_NAMESPACE::DevAcc1& a, 
-          const ALPAKA_ACCELERATOR_NAMESPACE::DevAcc1& b) const {
-          return (getIdxOfDev(a) < getIdxOfDev(b));  
-        }
-      };
       
-      /// Map device to the number of bytes cached by it
-      using DeviceCachedBytes = std::map<ALPAKA_ACCELERATOR_NAMESPACE::DevAcc1, TotalBytes, DeviceIdxCompare>;
+      // Map device to the number of bytes cached by it
+      using DeviceCachedBytes = std::map<int, TotalBytes>;
     }  // namespace allocator
   }  // namespace alpakatools
 }  // namespace cms

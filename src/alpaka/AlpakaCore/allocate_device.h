@@ -7,37 +7,37 @@ namespace cms::alpakatools {
   // Allocate device memory
   template <typename TData>
   auto allocate_device(
-    const ALPAKA_ACCELERATOR_NAMESPACE::DevAcc1& device,
     const alpaka_common::Extent& extent,
     const ALPAKA_ACCELERATOR_NAMESPACE::Queue& queue) 
   {
     static const size_t maxAllocationSize = 
-      allocator::CachingDeviceAllocator<TData>::IntPow(allocator::binGrowth, allocator::maxBin);
+      allocator::CachingDeviceAllocator::IntPow(allocator::binGrowth, allocator::maxBin);
+    const alpaka_common::Extent nbytes = alpakatools::nbytesFromExtent<TData>(extent);
     if constexpr (allocator::policy == allocator::Policy::Caching) {
-      const size_t nbytes = alpakatools::nbytesFromExtent<TData>(extent);
       if (nbytes > maxAllocationSize) {
         throw std::runtime_error("Tried to allocate " + std::to_string(nbytes) +
                                  " bytes, but the allocator maximum is " + std::to_string(maxAllocationSize));
       }
-      return allocator::getCachingDeviceAllocator<TData>().DeviceAllocate(device, extent, queue);
+      return allocator::getCachingDeviceAllocator().DeviceAllocate<TData>(extent, queue);
     }
-    auto buf {::alpaka::allocBuf<TData, alpaka_common::Idx>(device, extent)};
+    auto buf_ptr {new ALPAKA_ACCELERATOR_NAMESPACE::AlpakaDeviceBuf<std::byte>{
+      alpaka::allocBuf<std::byte, alpaka_common::Idx>(alpaka::getDev(queue), nbytes)}};
 #if CUDA_VERSION >= 11020
     if constexpr (allocator::policy == allocator::Policy::Asynchronous) {
-      ::alpaka::prepareForAsyncCopy(buf);
+      alpaka::prepareForAsyncCopy(*buf_ptr);
     }
 #endif
-    return buf;
+    return buf_ptr;
   }
 
   // Free device memory (to be called from unique_ptr)
-  template <typename TData>
-  void free_device(
-    const ALPAKA_ACCELERATOR_NAMESPACE::DevAcc1 &device,
-    const ALPAKA_ACCELERATOR_NAMESPACE::AlpakaDeviceBuf<TData> &buf) 
+  inline void free_device(
+    ALPAKA_ACCELERATOR_NAMESPACE::AlpakaDeviceBuf<std::byte>* buf_ptr) 
   {
     if constexpr (allocator::policy == allocator::Policy::Caching) {
-      allocator::getCachingDeviceAllocator<TData>().DeviceFree(device, buf);
+      allocator::getCachingDeviceAllocator().DeviceFree(buf_ptr);
+    } else {
+      delete buf_ptr;
     }
   }
 }  // namespace cms::alpakatools
