@@ -8,8 +8,7 @@
 #include "getCachingDeviceAllocator.h"
 
 namespace cms::alpakatools::allocator {
-  template <typename TData>
-  inline CachingHostAllocator<TData>& getCachingHostAllocator() {
+  inline CachingHostAllocator& getCachingHostAllocator() {
     if (debug) {
       std::cout << "CachingHostAllocator settings\n"
                 << "  bin growth " << binGrowth << "\n"
@@ -17,7 +16,7 @@ namespace cms::alpakatools::allocator {
                 << "  max bin    " << maxBin << "\n"
                 << "  resulting bins:\n";
       for (auto bin = minBin; bin <= maxBin; ++bin) {
-        auto binSize = CachingDeviceAllocator<TData>::IntPow(binGrowth, bin);
+        auto binSize = CachingDeviceAllocator::IntPow(binGrowth, bin);
         if (binSize >= (1 << 30) and binSize % (1 << 30) == 0) {
           std::cout << "    " << std::setw(8) << (binSize >> 30) << " GB\n";
         } else if (binSize >= (1 << 20) and binSize % (1 << 20) == 0) {
@@ -32,12 +31,11 @@ namespace cms::alpakatools::allocator {
     }
 
     // the public interface is thread safe
-    static CachingHostAllocator<TData> allocator{binGrowth,
-                                                 minBin,
-                                                 maxBin,
-                                                 minCachedBytes(),
-                                                 false,  // do not skip cleanup
-                                                 debug};
+    static CachingHostAllocator allocator{binGrowth,
+                                          minBin,
+                                          maxBin,
+                                          minCachedBytes(),
+                                          debug};
     return allocator;
   }
 }  // namespace cms::alpakatools::allocator

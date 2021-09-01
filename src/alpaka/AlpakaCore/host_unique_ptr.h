@@ -9,20 +9,25 @@ namespace cms {
   namespace alpakatools {
     namespace host {
       namespace impl {
-        template <typename TData>
+
         class HostDeleter {
         public:
-          void operator()(alpaka_common::AlpakaHostBuf<TData> *buf_ptr) { 
-            if (buf_ptr) {
-              cms::alpakatools::free_host<TData>(*buf_ptr);
-              delete buf_ptr;
+          HostDeleter(alpaka_common::AlpakaHostBuf<std::byte>* buffer_ptr) 
+            : buf_ptr {buffer_ptr} {}
+
+          void operator()(void* d_ptr) { 
+            if (d_ptr) {
+              cms::alpakatools::free_host(buf_ptr);
             } 
           }
+        
+        private:
+          alpaka_common::AlpakaHostBuf<std::byte>* buf_ptr;
         };
       }  // namespace impl
 
       template <typename TData>
-      using unique_ptr = std::unique_ptr<alpaka_common::AlpakaHostBuf<TData>, impl::HostDeleter<TData> >;
+      using unique_ptr = std::unique_ptr<TData, impl::HostDeleter>;
     }    // namespace host
     
     // No check for the trivial constructor, make it clear in the interface
@@ -31,8 +36,10 @@ namespace cms {
       const alpaka_common::Extent& extent, 
       const ALPAKA_ACCELERATOR_NAMESPACE::Queue& queue) 
     {
-      auto buf_ptr {new alpaka_common::AlpakaHostBuf<TData> {allocate_host<TData>(extent, queue)}};
-      return typename host::unique_ptr<TData> {buf_ptr};
+      auto buf_ptr {allocate_host<TData>(extent, queue)};
+      void* d_ptr = alpaka::getPtrNative(*buf_ptr);
+      return typename host::unique_ptr<TData> {
+        reinterpret_cast<TData*>(d_ptr), host::impl::HostDeleter {buf_ptr}};
     }
 
     // Allocate pinned host memory

@@ -39,11 +39,12 @@
  ******************************************************************************/
 
 #include <cmath>
-#include <map>
+#include <memory>
 #include <set>
 #include <mutex>
 
 #include "AlpakaCore/alpakaMemoryHelper.h"
+#include "AlpakaCore/deviceAllocatorStatus.h"
 
 /// cms::alpaka::allocator namespace
 namespace cms::alpakatools::allocator {
@@ -96,7 +97,7 @@ namespace cms::alpakatools::allocator {
  * and sets a maximum of 6,291,455 cached bytes
  *
  */
-  template <typename TData>
+  // template <typename TData>
   struct CachingHostAllocator {
     //---------------------------------------------------------------------
     // Constants
@@ -109,6 +110,10 @@ namespace cms::alpakatools::allocator {
     static const size_t INVALID_SIZE = (size_t)-1;
 
 #ifndef DOXYGEN_SHOULD_SKIP_THIS  // Do not document
+
+    /// Invalid device ordinal
+    static const int INVALID_DEVICE_ORDINAL = -1;
+
     //---------------------------------------------------------------------
     // Type definitions and helper types
     //---------------------------------------------------------------------
@@ -117,34 +122,37 @@ namespace cms::alpakatools::allocator {
      * Descriptor for pinned host memory allocations
      */
     struct BlockDescriptor {
-      alpaka_common::AlpakaHostBuf<TData> buf;                          // Host buffer 
-      size_t bytes;                                                     // Size of allocation in bytes
-      unsigned int bin;                                                 // Bin enumeration
-      ALPAKA_ACCELERATOR_NAMESPACE::DevAcc1 device;                     // device
-      ALPAKA_ACCELERATOR_NAMESPACE::Queue associated_queue;             // Associated associated_queue
-      ::alpaka::Event<ALPAKA_ACCELERATOR_NAMESPACE::Queue> ready_event; // Signal when associated queue has run to the point at which this block was freed
+      void* d_ptr; // Native host pointer
+      std::shared_ptr<alpaka_common::AlpakaHostBuf<std::byte>> buf_ptr; // Host buffer
+      size_t bytes; // Size of allocation in bytes
+      unsigned int bin; // Bin enumeration
+      int device_idx; // Device
+      std::shared_ptr<ALPAKA_ACCELERATOR_NAMESPACE::Queue> associated_queue_ptr; // Associated associated_queue
+      std::shared_ptr<alpaka::Event<ALPAKA_ACCELERATOR_NAMESPACE::Queue>> ready_event_ptr; // Signal when associated queue has run to the point at which this block was freed
 
-      // Constructor (suitable for searching maps for a specific block, given its buffer)
-      BlockDescriptor(const alpaka_common::AlpakaHostBuf<TData> &buffer)
-          : buf(buffer),
+      // Constructor (suitable for searching maps for a specific block, given its native host pointer)
+      BlockDescriptor(void* ptr)
+          : d_ptr(ptr),
+            buf_ptr(nullptr),
             bytes(0),
             bin(INVALID_BIN),
-            device(ALPAKA_ACCELERATOR_NAMESPACE::device),
-            associated_queue(device),
-            ready_event(device) {}
+            device_idx(INVALID_DEVICE_ORDINAL),
+            associated_queue_ptr(nullptr),
+            ready_event_ptr(nullptr) {}
 
       // Constructor (suitable for searching maps for a range of suitable blocks)
-      BlockDescriptor(const ALPAKA_ACCELERATOR_NAMESPACE::Queue& queue)
-          : buf(cms::alpakatools::allocHostBuf<TData>(alpaka_common::Extent{})),
+      BlockDescriptor(int dev_idx)
+          : d_ptr(nullptr),
+            buf_ptr(nullptr),
             bytes(0),
             bin(INVALID_BIN),
-            device(ALPAKA_ACCELERATOR_NAMESPACE::device),
-            associated_queue(queue),
-            ready_event(device) {}
+            device_idx(dev_idx),
+            associated_queue_ptr(nullptr),
+            ready_event_ptr(nullptr) {}
 
       // Comparison functor for comparing host pointers
       static bool PtrCompare(const BlockDescriptor &a, const BlockDescriptor &b) {
-        return (::alpaka::getPtrNative(a.buf) < ::alpaka::getPtrNative(b.buf)); 
+        return (a.d_ptr < b.d_ptr); 
       }
 
       // Comparison functor for comparing allocation sizes
@@ -153,13 +161,6 @@ namespace cms::alpakatools::allocator {
 
     /// BlockDescriptor comparator function interface
     typedef bool (*Compare)(const BlockDescriptor &, const BlockDescriptor &);
-
-    class TotalBytes {
-    public:
-      size_t free;
-      size_t live;
-      TotalBytes() { free = live = 0; }
-    };
 
     /// Set type for cached blocks (ordered by size)
     typedef std::multiset<BlockDescriptor, Compare> CachedBlocks;
@@ -220,8 +221,6 @@ namespace cms::alpakatools::allocator {
     size_t max_bin_bytes;     /// Maximum bin size
     size_t max_cached_bytes;  /// Maximum aggregate cached bytes
 
-    const bool
-        skip_cleanup;  /// Whether or not to skip a call to FreeAllCached() when destructor is called.  (The CUDA runtime may have already shut down for statically declared allocators)
     bool debug;        /// Whether or not to print (de)allocation events to stdout
 
     TotalBytes cached_bytes;     /// Aggregate cached bytes
@@ -242,8 +241,6 @@ namespace cms::alpakatools::allocator {
         unsigned int min_bin = 1,                ///< Minimum bin (default is bin_growth ^ 1)
         unsigned int max_bin = INVALID_BIN,      ///< Maximum bin (default is no max bin)
         size_t max_cached_bytes = INVALID_SIZE,  ///< Maximum aggregate cached bytes (default is no limit)
-        bool skip_cleanup =
-            false,  ///< Whether or not to skip a call to \p FreeAllCached() when the destructor is called (default is to deallocate)
         bool debug = false)  ///< Whether or not to print (de)allocation events to stdout (default is no stderr output)
         : bin_growth(bin_growth),
           min_bin(min_bin),
@@ -251,7 +248,6 @@ namespace cms::alpakatools::allocator {
           min_bin_bytes(IntPow(bin_growth, min_bin)),
           max_bin_bytes(IntPow(bin_growth, max_bin)),
           max_cached_bytes(max_cached_bytes),
-          skip_cleanup(skip_cleanup),
           debug(debug),
           cached_blocks(BlockDescriptor::SizeCompare),
           live_blocks(BlockDescriptor::PtrCompare) {}
@@ -269,14 +265,13 @@ namespace cms::alpakatools::allocator {
      * which delineates five bin-sizes: 512B, 4KB, 32KB, 256KB, and 2MB and
      * sets a maximum of 6,291,455 cached bytes
      */
-    CachingHostAllocator(bool skip_cleanup = false, bool debug = false)
+    CachingHostAllocator(/*bool skip_cleanup = false, */bool debug = false)
         : bin_growth(8),
           min_bin(3),
           max_bin(7),
           min_bin_bytes(IntPow(bin_growth, min_bin)),
           max_bin_bytes(IntPow(bin_growth, max_bin)),
           max_cached_bytes((max_bin_bytes * 3) - 1),
-          skip_cleanup(skip_cleanup),
           debug(debug),
           cached_blocks(BlockDescriptor::SizeCompare),
           live_blocks(BlockDescriptor::PtrCompare) {}
@@ -307,16 +302,22 @@ namespace cms::alpakatools::allocator {
      *
      * Once freed, the allocation becomes available immediately for reuse.
      */
+    template <typename TData>
     auto HostAllocate(
         const alpaka_common::Extent& extent,                     ///< [in] Extent of the allocation
         const ALPAKA_ACCELERATOR_NAMESPACE::Queue& active_queue) ///< [in] The queue to be associated with this allocation
     {
       std::unique_lock<std::mutex> mutex_locker(mutex, std::defer_lock);
+      auto device = alpaka::getDev(active_queue);
+      auto device_idx = getIdxOfDev(device);
       size_t bytes = cms::alpakatools::nbytesFromExtent<TData>(extent);
 
       // Create a block descriptor for the requested allocation
       bool found = false;
-      BlockDescriptor search_key(active_queue);
+      BlockDescriptor search_key(device_idx);
+      auto active_queue_ptr = std::make_shared<ALPAKA_ACCELERATOR_NAMESPACE::Queue>(active_queue);
+      auto ready_event_ptr = std::make_shared<alpaka::Event<ALPAKA_ACCELERATOR_NAMESPACE::Queue>>(device);
+      search_key.associated_queue_ptr = active_queue_ptr;
       NearestPowerOf(search_key.bin, search_key.bytes, bin_growth, bytes);
 
       if (search_key.bin > max_bin) {
@@ -340,15 +341,15 @@ namespace cms::alpakatools::allocator {
         while ((block_itr != cached_blocks.end()) && (block_itr->bin == search_key.bin)) {
           // To prevent races with reusing blocks returned by the host but still
           // in use for transfers, only consider cached blocks that are from an idle queue
-          if (::alpaka::isComplete(block_itr->ready_event)) {
+          if ((block_itr->ready_event_ptr == nullptr) || alpaka::isComplete(*(block_itr->ready_event_ptr))) {
             // Reuse existing cache block.  Insert into live blocks.
             found = true;
             search_key = *block_itr;
-            search_key.associated_queue = active_queue;
-            if (const auto& device = ALPAKA_ACCELERATOR_NAMESPACE::device; search_key.device != device) {
+            search_key.associated_queue_ptr = active_queue_ptr;
+            if (search_key.device_idx != device_idx) {
               // If "associated" device changes, need to re-create the event on the right device
-              search_key.ready_event = ::alpaka::Event<ALPAKA_ACCELERATOR_NAMESPACE::Queue> {device};
-              search_key.device = device;
+              search_key.ready_event_ptr = ready_event_ptr;
+              search_key.device_idx = device_idx;
             }
 
             live_blocks.insert(search_key);
@@ -384,9 +385,15 @@ namespace cms::alpakatools::allocator {
       if (!found) {
         // Attempt to allocate
         // TODO: eventually support allocation flags
-        search_key.buf = cms::alpakatools::allocHostBuf<TData>(extent);
-        ::alpaka::prepareForAsyncCopy(search_key.buf);
-
+        auto buf {cms::alpakatools::allocHostBuf<std::byte>(
+          static_cast<alpaka_common::Extent>(search_key.bytes))};
+        alpaka::prepareForAsyncCopy(buf);
+        search_key.d_ptr = alpaka::getPtrNative(buf);
+        search_key.buf_ptr = std::make_shared<alpaka_common::AlpakaHostBuf<std::byte>>(
+          std::move(buf)
+        );
+        search_key.ready_event_ptr = ready_event_ptr;
+        
         // Insert into live blocks
         mutex_locker.lock();
         live_blocks.insert(search_key);
@@ -415,7 +422,7 @@ namespace cms::alpakatools::allocator {
                (long long)cached_bytes.live);
       */
 
-      return search_key.buf;
+      return search_key.buf_ptr.get();
     }
 
     /**
@@ -423,13 +430,12 @@ namespace cms::alpakatools::allocator {
      *
      * Once freed, the allocation becomes available immediately for reuse.
      */
-    void HostFree(const alpaka_common::AlpakaHostBuf<TData> &buf) {
+    void HostFree(alpaka_common::AlpakaHostBuf<std::byte>* buf_ptr) {
       // Lock
       std::unique_lock<std::mutex> mutex_locker(mutex);
 
       // Find corresponding block descriptor
-      bool recached = false;
-      BlockDescriptor search_key(buf);
+      BlockDescriptor search_key(alpaka::getPtrNative(*buf_ptr));
       auto block_itr = live_blocks.find(search_key);
       if (block_itr != live_blocks.end()) {
         // Remove from live blocks
@@ -440,10 +446,11 @@ namespace cms::alpakatools::allocator {
         // Keep the returned allocation if bin is valid and we won't exceed the max cached threshold
         if ((search_key.bin != INVALID_BIN) && (cached_bytes.free + search_key.bytes <= max_cached_bytes)) {
           // Insert returned allocation into free blocks
-          recached = true;
           cached_blocks.insert(search_key);
           cached_bytes.free += search_key.bytes;
-
+          if (search_key.associated_queue_ptr && search_key.ready_event_ptr) {
+            alpaka::enqueue(*(search_key.associated_queue_ptr), *(search_key.ready_event_ptr));
+          }
           /*
           if (debug)
             printf(
@@ -459,11 +466,6 @@ namespace cms::alpakatools::allocator {
                 (long long)cached_bytes.live);
           */
         }
-      }
-
-      if (recached) {
-        // Insert the ready event in the associated queue
-        ::alpaka::enqueue(search_key.associated_queue, search_key.ready_event);
       }
 
       // Unlock
@@ -485,44 +487,6 @@ namespace cms::alpakatools::allocator {
       */
     }
 
-    /**
-     * \brief Frees all cached pinned host allocations
-     */
-    void FreeAllCached() {
-      std::unique_lock<std::mutex> mutex_locker(mutex);
-
-      while (!cached_blocks.empty()) {
-        // Get first block
-        auto begin = cached_blocks.begin();
-
-        // Reduce balance and erase entry
-        cached_bytes.free -= begin->bytes;
-
-        /*
-        if (debug)
-          printf(
-              "\tHost freed %lld bytes.\n\t\t  %lld available blocks cached (%lld bytes), %lld live blocks (%lld "
-              "bytes) outstanding.\n",
-              (long long)begin->bytes,
-              (long long)cached_blocks.size(),
-              (long long)cached_bytes.free,
-              (long long)live_blocks.size(),
-              (long long)cached_bytes.live);
-        */
-
-        cached_blocks.erase(begin);
-      }
-
-      mutex_locker.unlock();
-    }
-
-    /**
-     * \brief Destructor
-     */
-    ~CachingHostAllocator() {
-      if (!skip_cleanup)
-        FreeAllCached();
-    }
   };
 
   /** @} */  // end group UtilMgmt
