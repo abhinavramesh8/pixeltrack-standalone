@@ -295,8 +295,7 @@ namespace cms::alpakatools::allocator {
      */
     void SetMaxCachedBytes(size_t max_cached_bytes) {
       // Lock
-      // CMS: use RAII instead of (un)locking explicitly
-      std::unique_lock mutex_locker(mutex);
+      mutex.lock();
 
       if (debug)
         // CMS: use raw printf
@@ -306,8 +305,7 @@ namespace cms::alpakatools::allocator {
 
       this->max_cached_bytes = max_cached_bytes;
 
-      // Unlock (redundant, kept for style uniformity)
-      mutex_locker.unlock();
+      mutex.unlock();
     }
 
     /**
@@ -322,8 +320,6 @@ namespace cms::alpakatools::allocator {
         const alpaka_common::Extent& extent,                     ///< [in] Extent of the allocation
         const ALPAKA_ACCELERATOR_NAMESPACE::Queue& active_queue) ///< [in] The queue to be associated with this allocation
     {
-      // CMS: use RAII instead of (un)locking explicitly
-      std::unique_lock<std::mutex> mutex_locker(mutex, std::defer_lock);
       auto device = alpaka::getDev(active_queue);
       auto device_idx = getIdxOfDev(device);
       size_t bytes = alpakatools::nbytesFromExtent<TData>(extent);
@@ -344,7 +340,7 @@ namespace cms::alpakatools::allocator {
         search_key.bytes = bytes;
       } else {
         // Search for a suitable cached allocation: lock
-        mutex_locker.lock();
+        mutex.lock();
 
         if (search_key.bin < min_bin) {
           // Bin is less than minimum bin: round up
@@ -395,7 +391,7 @@ namespace cms::alpakatools::allocator {
           block_itr++;
         }
         // Done searching: unlock
-        mutex_locker.unlock();
+        mutex.unlock();
       }
 
       // Allocate the block if necessary
@@ -409,13 +405,12 @@ namespace cms::alpakatools::allocator {
         search_key.ready_event_ptr = std::make_shared<alpaka::Event<ALPAKA_ACCELERATOR_NAMESPACE::Queue>>(device);
 
         // Insert into live blocks
-        mutex_locker.lock();
+        mutex.lock();
         live_blocks.insert(search_key);
         cached_bytes[device_idx].live += search_key.bytes;
         cached_bytes[device_idx].liveRequested += search_key.bytesRequested;  // CMS
-        mutex_locker.unlock();
+        mutex.unlock();
         
-
         /*if (debug)
           // CMS: improved debug message
           // CMS: use raw printf
@@ -444,19 +439,13 @@ namespace cms::alpakatools::allocator {
      * with which it was associated with during allocation, and it becomes available for reuse within other
      * queues when all prior work submitted to \p active_queue has completed.
      */
-    void DeviceFree(
-      // const ALPAKA_ACCELERATOR_NAMESPACE::DevAcc1& device, 
-      ALPAKA_ACCELERATOR_NAMESPACE::AlpakaDeviceBuf<std::byte> *buf_ptr) 
+    void DeviceFree(void* d_ptr, int device_idx) 
     {
-      // CMS: use RAII instead of (un)locking explicitly
-      std::unique_lock<std::mutex> mutex_locker(mutex, std::defer_lock);
-
       // Lock
-      mutex_locker.lock();
-      auto device_idx = getIdxOfDev(alpaka::getDev(*buf_ptr));
+      mutex.lock();
 
       // Find corresponding block descriptor
-      BlockDescriptor search_key(alpaka::getPtrNative(*buf_ptr), device_idx);
+      BlockDescriptor search_key(d_ptr, device_idx);
       auto block_itr = live_blocks.find(search_key);
       if (block_itr != live_blocks.end()) {
         // Remove from live blocks
@@ -493,7 +482,7 @@ namespace cms::alpakatools::allocator {
       }
 
       // Unlock
-      mutex_locker.unlock();
+      mutex.unlock();
 
       /*if (!recached and debug) {
         // CMS: improved debug message

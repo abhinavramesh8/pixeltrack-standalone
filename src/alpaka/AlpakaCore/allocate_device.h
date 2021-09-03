@@ -32,10 +32,12 @@ namespace cms::alpakatools {
 
   // Free device memory (to be called from unique_ptr)
   inline void free_device(
-    ALPAKA_ACCELERATOR_NAMESPACE::AlpakaDeviceBuf<std::byte>* buf_ptr) 
+    void* d_ptr,
+    ALPAKA_ACCELERATOR_NAMESPACE::AlpakaDeviceBuf<std::byte>* buf_ptr,
+    int device_idx) 
   {
     if constexpr (allocator::policy == allocator::Policy::Caching) {
-      allocator::getCachingDeviceAllocator().DeviceFree(buf_ptr);
+      allocator::getCachingDeviceAllocator().DeviceFree(d_ptr, device_idx);
     } else {
       delete buf_ptr;
     }

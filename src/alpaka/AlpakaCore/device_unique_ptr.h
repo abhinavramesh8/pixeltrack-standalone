@@ -11,17 +11,18 @@ namespace cms {
       namespace impl {
         class DeviceDeleter {
         public:
-          DeviceDeleter(ALPAKA_ACCELERATOR_NAMESPACE::AlpakaDeviceBuf<std::byte>* buffer_ptr) 
-            : buf_ptr {buffer_ptr} {}
+          DeviceDeleter(ALPAKA_ACCELERATOR_NAMESPACE::AlpakaDeviceBuf<std::byte>* buffer_ptr, int dev_idx) 
+            : buf_ptr {buffer_ptr}, device_idx {dev_idx} {}
 
           void operator()(void* d_ptr) {
             if (d_ptr) {
-              cms::alpakatools::free_device(buf_ptr);
+              cms::alpakatools::free_device(d_ptr, buf_ptr, device_idx);
             }
           }
 
         private:
           ALPAKA_ACCELERATOR_NAMESPACE::AlpakaDeviceBuf<std::byte>* buf_ptr;
+          int device_idx;
         };
       }  // namespace impl
 
@@ -36,9 +37,10 @@ namespace cms {
       const ALPAKA_ACCELERATOR_NAMESPACE::Queue& queue) 
     {
       auto buf_ptr {allocate_device<TData>(extent, queue)};
+      auto device_idx {allocator::getIdxOfDev(alpaka::getDev(*buf_ptr))};
       void* d_ptr = alpaka::getPtrNative(*buf_ptr);
       return typename device::unique_ptr<TData> {
-        reinterpret_cast<TData*>(d_ptr), device::impl::DeviceDeleter {buf_ptr}};
+        reinterpret_cast<TData*>(d_ptr), device::impl::DeviceDeleter {buf_ptr, device_idx}};
     }
 
     template <typename TData>
