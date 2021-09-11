@@ -123,8 +123,8 @@ namespace cms::alpakatools::allocator {
       size_t bytesRequested; // CMS: requested allocation size (for monitoring only)
       unsigned int bin; // Bin enumeration
       int device_idx; // Device
-      std::shared_ptr<ALPAKA_ACCELERATOR_NAMESPACE::Queue> associated_queue_ptr; // Associated associated_queue
-      std::shared_ptr<alpaka::Event<ALPAKA_ACCELERATOR_NAMESPACE::Queue>> ready_event_ptr; // Signal when associated queue has run to the point at which this block was freed
+      // std::shared_ptr<ALPAKA_ACCELERATOR_NAMESPACE::Queue> associated_queue_ptr; // Associated associated_queue
+      // std::shared_ptr<alpaka::Event<ALPAKA_ACCELERATOR_NAMESPACE::Queue>> ready_event_ptr; // Signal when associated queue has run to the point at which this block was freed
 
       // Constructor (suitable for searching maps for a specific block, given its native device pointer and device id)
       BlockDescriptor(void* ptr, int dev_idx) 
@@ -133,9 +133,9 @@ namespace cms::alpakatools::allocator {
             bytes(0),
             bytesRequested(0),  // CMS
             bin(INVALID_BIN),
-            device_idx(dev_idx),
+            device_idx(dev_idx)/*,
             associated_queue_ptr(nullptr),
-            ready_event_ptr(nullptr) {}
+            ready_event_ptr(nullptr)*/ {}
 
       // Constructor (suitable for searching maps for a range of suitable blocks, given a device id)
       BlockDescriptor(int dev_idx)
@@ -144,9 +144,9 @@ namespace cms::alpakatools::allocator {
             bytes(0),
             bytesRequested(0),  // CMS
             bin(INVALID_BIN),
-            device_idx(dev_idx),
+            device_idx(dev_idx)/*,
             associated_queue_ptr(nullptr),
-            ready_event_ptr(nullptr) {}
+            ready_event_ptr(nullptr)*/ {}
 
       // Comparison functor for comparing devices
       static bool PtrCompare(const BlockDescriptor &a, const BlockDescriptor &b) {
@@ -328,8 +328,8 @@ namespace cms::alpakatools::allocator {
       bool found = false;
       BlockDescriptor search_key(device_idx);
       search_key.bytesRequested = bytes;  // CMS
-      auto active_queue_ptr = std::make_shared<ALPAKA_ACCELERATOR_NAMESPACE::Queue>(active_queue);
-      search_key.associated_queue_ptr = active_queue_ptr;
+      // auto active_queue_ptr = std::make_shared<ALPAKA_ACCELERATOR_NAMESPACE::Queue>(active_queue);
+      // search_key.associated_queue_ptr = active_queue_ptr;
       NearestPowerOf(search_key.bin, search_key.bytes, bin_growth, bytes);
 
       if (search_key.bin > max_bin) {
@@ -349,46 +349,34 @@ namespace cms::alpakatools::allocator {
         }
 
         // Iterate through the range of cached blocks on the same device in the same bin
-        auto block_itr = cached_blocks.lower_bound(search_key);
-        while ((block_itr != cached_blocks.end()) && (block_itr->device_idx == device_idx) &&
-               (block_itr->bin == search_key.bin)) {
-          // To prevent races with reusing blocks returned by the host but still
-          // in use by the device, only consider cached blocks that are
-          // either (from the active queue) or (from an idle queue)
-          if ((block_itr->associated_queue_ptr == nullptr) ||
-              (active_queue == *(block_itr->associated_queue_ptr)) || 
-              (block_itr->ready_event_ptr == nullptr) ||
-              (alpaka::isComplete(*(block_itr->ready_event_ptr)))) {
-            // Reuse existing cache block.  Insert into live blocks.
-            found = true;
-            search_key = *block_itr;
-            search_key.associated_queue_ptr = active_queue_ptr;
-            live_blocks.insert(search_key);
+        auto block_itr = cached_blocks.find(search_key);
+        if (block_itr != cached_blocks.end()) {
+          // Reuse existing cache block.  Insert into live blocks.
+          found = true;
+          search_key = *block_itr;
+          // search_key.associated_queue_ptr = active_queue_ptr;
+          live_blocks.insert(search_key);
 
-            // Remove from free blocks
-            cached_bytes[device_idx].free -= search_key.bytes;
-            cached_bytes[device_idx].live += search_key.bytes;
-            cached_bytes[device_idx].liveRequested += search_key.bytesRequested; // CMS 
+          // Remove from free blocks
+          cached_bytes[device_idx].free -= search_key.bytes;
+          cached_bytes[device_idx].live += search_key.bytes;
+          cached_bytes[device_idx].liveRequested += search_key.bytesRequested; // CMS 
 
-            /*if (debug)
-              // CMS: improved debug message
-              // CMS: use raw printf
-              printf(
-                  "\tDevice %d reused cached block at %p (%lld bytes) for stream %lld, event %lld (previously "
-                  "associated with stream %lld, event %lld).\n",
-                  device,
-                  search_key.d_ptr,
-                  (long long)search_key.bytes,
-                  (long long)search_key.associated_stream,
-                  (long long)search_key.ready_event,
-                  (long long)block_itr->associated_stream,
-                  (long long)block_itr->ready_event);*/
+          /*if (debug)
+            // CMS: improved debug message
+            // CMS: use raw printf
+            printf(
+                "\tDevice %d reused cached block at %p (%lld bytes) for stream %lld, event %lld (previously "
+                "associated with stream %lld, event %lld).\n",
+                device,
+                search_key.d_ptr,
+                (long long)search_key.bytes,
+                (long long)search_key.associated_stream,
+                (long long)search_key.ready_event,
+                (long long)block_itr->associated_stream,
+                (long long)block_itr->ready_event);*/
 
-            cached_blocks.erase(block_itr);
-
-            break;
-          }
-          block_itr++;
+          cached_blocks.erase(block_itr);
         }
         // Done searching: unlock
         mutex.unlock();
@@ -402,7 +390,7 @@ namespace cms::alpakatools::allocator {
         search_key.buf_ptr = std::make_shared<ALPAKA_ACCELERATOR_NAMESPACE::AlpakaDeviceBuf<std::byte>>(
           std::move(buf)
         );
-        search_key.ready_event_ptr = std::make_shared<alpaka::Event<ALPAKA_ACCELERATOR_NAMESPACE::Queue>>(device);
+        // search_key.ready_event_ptr = std::make_shared<alpaka::Event<ALPAKA_ACCELERATOR_NAMESPACE::Queue>>(device);
 
         // Insert into live blocks
         mutex.lock();
@@ -459,9 +447,9 @@ namespace cms::alpakatools::allocator {
           // Insert returned allocation into free blocks
           cached_blocks.insert(search_key);
           cached_bytes[device_idx].free += search_key.bytes;
-          if (search_key.associated_queue_ptr && search_key.ready_event_ptr) {
+          /*if (search_key.associated_queue_ptr && search_key.ready_event_ptr) {
             alpaka::enqueue(*(search_key.associated_queue_ptr), *(search_key.ready_event_ptr));
-          }
+          }*/
 
           /*if (debug)
             // CMS: improved debug message

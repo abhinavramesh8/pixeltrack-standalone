@@ -29,9 +29,10 @@ namespace cms::alpakatools {
   }
 
   // Free pinned host memory (to be called from unique_ptr)
-  inline void free_host(alpaka_common::AlpakaHostBuf<std::byte>* buf_ptr) {
+  inline void free_host(
+    void* d_ptr, alpaka_common::AlpakaHostBuf<std::byte>* buf_ptr) {
     if constexpr (allocator::policy == allocator::Policy::Caching) {
-      allocator::getCachingHostAllocator().HostFree(buf_ptr);
+      allocator::getCachingHostAllocator().HostFree(d_ptr);
     } else {
       delete buf_ptr;
     }

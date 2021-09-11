@@ -17,7 +17,7 @@ namespace cms {
 
           void operator()(void* d_ptr) { 
             if (d_ptr) {
-              cms::alpakatools::free_host(buf_ptr);
+              cms::alpakatools::free_host(d_ptr, buf_ptr);
             } 
           }
         
