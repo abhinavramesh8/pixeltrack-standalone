@@ -3,7 +3,7 @@
 
 #include <algorithm>
 
-#include "AlpakaCore/alpakaCommon.h"
+#include "AlpakaCore/host_unique_ptr.h"
 
 #include "AlpakaDataFormats/gpuClusteringConstants.h"
 #include "CondFormats/SiPixelFedCablingMapGPU.h"
@@ -161,12 +161,12 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
         void initializeWordFed(int fedId, unsigned int wordCounterGPU, const uint32_t* src, unsigned int length);
 
-        auto word() const { return word_; }
-        auto fedId() const { return fedId_; }
+        auto word() const { return word_.get(); }
+        auto fedId() const { return fedId_.get(); }
 
       private:
-        AlpakaHostBuf<unsigned int> word_;
-        AlpakaHostBuf<unsigned char> fedId_;
+        cms::alpakatools::host::unique_ptr<unsigned int> word_;
+        cms::alpakatools::host::unique_ptr<unsigned char> fedId_;
       };
 
       SiPixelRawToClusterGPUKernel()
