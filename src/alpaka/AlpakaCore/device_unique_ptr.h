@@ -48,8 +48,8 @@ namespace cms {
       const alpaka_common::Extent& extent, 
       const ALPAKA_ACCELERATOR_NAMESPACE::Queue& queue) 
     {
-      static_assert(std::is_trivially_constructible<TData>::value,
-                    "Allocating with non-trivial constructor on the device memory is not supported");
+      /*static_assert(std::is_trivially_constructible<TData>::value,
+                    "Allocating with non-trivial constructor on the device memory is not supported");*/
       return make_device_unique_uninitialized<TData>(extent, queue);
     }
   }  // namespace alpakatools
