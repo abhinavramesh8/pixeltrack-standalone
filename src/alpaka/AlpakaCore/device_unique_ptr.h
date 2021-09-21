@@ -27,16 +27,13 @@ namespace cms {
           int device_idx;
         };
       }  // namespace impl
-
       template <typename TData>
-      constexpr bool on_host() {
-        return std::is_same_v<alpaka_common::AlpakaHostBuf<TData>, 
-                              ALPAKA_ACCELERATOR_NAMESPACE::AlpakaDeviceBuf<TData>>;
-      }
-
-      template <typename TData>
-      using unique_ptr = std::conditional_t<on_host<TData>(), host::unique_ptr<TData>, 
-                                            std::unique_ptr<TData, impl::DeviceDeleter>>;
+      using unique_ptr = 
+#ifdef ALPAKA_ACC_GPU_CUDA_ENABLED
+        std::unique_ptr<TData, impl::DeviceDeleter>;
+#else
+        host::unique_ptr<TData>;
+#endif
     }    // namespace device
 
     // No check for the trivial constructor, make it clear in the interface
@@ -45,15 +42,15 @@ namespace cms {
       const alpaka_common::Extent& extent, 
       const ALPAKA_ACCELERATOR_NAMESPACE::Queue& queue) 
     {
-      if constexpr (device::on_host<TData>()) {
-        return make_host_unique_uninitialized<TData>(extent, queue);
-      } else {
-        auto buf_ptr {allocate_device<TData>(extent, queue)};
-        auto device_idx {allocator::getIdxOfDev(alpaka::getDev(*buf_ptr))};
-        void* d_ptr = alpaka::getPtrNative(*buf_ptr);
-        return typename device::unique_ptr<TData> {
-          reinterpret_cast<TData*>(d_ptr), device::impl::DeviceDeleter {buf_ptr, device_idx}};
-      } 
+#ifdef ALPAKA_ACC_GPU_CUDA_ENABLED
+      auto buf_ptr {allocate_device<TData>(extent, queue)};
+      auto device_idx {allocator::getIdxOfDev(alpaka::getDev(*buf_ptr))};
+      void* d_ptr = alpaka::getPtrNative(*buf_ptr);
+      return typename device::unique_ptr<TData> {
+        reinterpret_cast<TData*>(d_ptr), device::impl::DeviceDeleter {buf_ptr, device_idx}};
+#else
+      return make_host_unique_uninitialized<TData>(extent, queue);
+#endif
     }
 
     template <typename TData>

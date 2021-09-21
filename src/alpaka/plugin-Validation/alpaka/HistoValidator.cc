@@ -201,8 +201,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     }
 
     {
-      auto const& tracksBuf = iEvent.get(trackToken_);
-      auto const tracks = alpaka::getPtrNative(tracksBuf);
+      auto const& tracksPtr = iEvent.get(trackToken_);
+      auto const tracks = tracksPtr.get();
 
       int nTracks = 0;
       for (int i = 0; i < tracks->stride(); ++i) {
