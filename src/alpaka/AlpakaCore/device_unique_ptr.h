@@ -2,8 +2,10 @@
 #define HeterogeneousCore_AlpakaUtilities_interface_device_unique_ptr_h
 
 #include <memory>
+#include <type_traits>
 
 #include "AlpakaCore/allocate_device.h"
+#include "AlpakaCore/host_unique_ptr.h"
 
 namespace cms {
   namespace alpakatools {
@@ -27,24 +29,35 @@ namespace cms {
       }  // namespace impl
 
       template <typename TData>
-      using unique_ptr = std::unique_ptr<TData, impl::DeviceDeleter>;
+      constexpr bool on_host() {
+        return std::is_same_v<alpaka_common::AlpakaHostBuf<TData>, 
+                              ALPAKA_ACCELERATOR_NAMESPACE::AlpakaDeviceBuf<TData>>;
+      }
+
+      template <typename TData>
+      using unique_ptr = std::conditional_t<on_host<TData>(), host::unique_ptr<TData>, 
+                                            std::unique_ptr<TData, impl::DeviceDeleter>>;
     }    // namespace device
 
     // No check for the trivial constructor, make it clear in the interface
     template <typename TData>
-    typename device::unique_ptr<TData> make_device_unique_uninitialized(
+    auto make_device_unique_uninitialized(
       const alpaka_common::Extent& extent, 
       const ALPAKA_ACCELERATOR_NAMESPACE::Queue& queue) 
     {
-      auto buf_ptr {allocate_device<TData>(extent, queue)};
-      auto device_idx {allocator::getIdxOfDev(alpaka::getDev(*buf_ptr))};
-      void* d_ptr = alpaka::getPtrNative(*buf_ptr);
-      return typename device::unique_ptr<TData> {
-        reinterpret_cast<TData*>(d_ptr), device::impl::DeviceDeleter {buf_ptr, device_idx}};
+      if constexpr (device::on_host<TData>()) {
+        return make_host_unique_uninitialized<TData>(extent, queue);
+      } else {
+        auto buf_ptr {allocate_device<TData>(extent, queue)};
+        auto device_idx {allocator::getIdxOfDev(alpaka::getDev(*buf_ptr))};
+        void* d_ptr = alpaka::getPtrNative(*buf_ptr);
+        return typename device::unique_ptr<TData> {
+          reinterpret_cast<TData*>(d_ptr), device::impl::DeviceDeleter {buf_ptr, device_idx}};
+      } 
     }
 
     template <typename TData>
-    typename device::unique_ptr<TData> make_device_unique(
+    auto make_device_unique(
       const alpaka_common::Extent& extent, 
       const ALPAKA_ACCELERATOR_NAMESPACE::Queue& queue) 
     {
