@@ -36,9 +36,8 @@ namespace cms {
 #endif
     }    // namespace device
 
-    // No check for the trivial constructor, make it clear in the interface
     template <typename TData>
-    auto make_device_unique_uninitialized(
+    auto make_device_unique(
       const alpaka_common::Extent& extent, 
       const ALPAKA_ACCELERATOR_NAMESPACE::Queue& queue) 
     {
@@ -49,18 +48,8 @@ namespace cms {
       return typename device::unique_ptr<TData> {
         reinterpret_cast<TData*>(d_ptr), device::impl::DeviceDeleter {buf_ptr, device_idx}};
 #else
-      return make_host_unique_uninitialized<TData>(extent, queue);
+      return make_host_unique<TData>(extent, queue);
 #endif
-    }
-
-    template <typename TData>
-    auto make_device_unique(
-      const alpaka_common::Extent& extent, 
-      const ALPAKA_ACCELERATOR_NAMESPACE::Queue& queue) 
-    {
-      /*static_assert(std::is_trivially_constructible<TData>::value,
-                    "Allocating with non-trivial constructor on the device memory is not supported");*/
-      return make_device_unique_uninitialized<TData>(extent, queue);
     }
   }  // namespace alpakatools
 }  // namespace cms

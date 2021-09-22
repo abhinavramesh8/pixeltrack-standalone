@@ -225,8 +225,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     }
 
     {
-      auto const& verticesBuf = iEvent.get(vertexToken_);
-      auto const vertices = alpaka::getPtrNative(verticesBuf);
+      auto const& verticesPtr = iEvent.get(vertexToken_);
+      auto const vertices = verticesPtr.get();
 
       histos["vertex_n"].fill(vertices->nvFinal);
       for (uint32_t i = 0; i < vertices->nvFinal; ++i) {

@@ -111,8 +111,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
     {
       auto const& count = iEvent.get(vertexCountToken_);
-      auto const& verticesBuf = iEvent.get(vertexToken_);
-      auto const vertices = alpaka::getPtrNative(verticesBuf);
+      auto const& verticesPtr = iEvent.get(vertexToken_);
+      auto const vertices = verticesPtr.get();
 
       auto diff = std::abs(int(vertices->nvFinal) - int(count.nVertices()));
       if (diff != 0) {
