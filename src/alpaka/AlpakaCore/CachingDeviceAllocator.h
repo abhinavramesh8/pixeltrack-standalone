@@ -46,7 +46,7 @@
 #include "AlpakaCore/alpakaMemoryHelper.h"
 #include "AlpakaCore/deviceAllocatorStatus.h"
 
-/// cms::alpaka::allocator namespace
+/// cms::alpakatools::allocator namespace
 namespace cms::alpakatools::allocator {
 
   /**
@@ -62,14 +62,10 @@ namespace cms::alpakatools::allocator {
  * \brief A simple caching allocator for device memory allocations.
  *
  * \par Overview
- * The allocator is thread-safe and queue-safe and is capable of managing cached
+ * The allocator is thread-safe and is capable of managing cached
  * device allocations on multiple devices.  It behaves as follows:
  *
  * \par
- * - Allocations from the allocator are associated with an \p active_queue.  Once freed,
- *   the allocation becomes available immediately for reuse within the \p active_queue
- *   with which it was associated with during allocation, and it becomes available for
- *   reuse within other queues when all prior work submitted to \p active_queue has completed.
  * - Allocations are categorized and cached by bin size.  A new allocation request of
  *   a given size will only consider cached allocations within the corresponding bin.
  * - Bin limits progress geometrically in accordance with the growth factor
@@ -123,9 +119,7 @@ namespace cms::alpakatools::allocator {
       size_t bytesRequested; // CMS: requested allocation size (for monitoring only)
       unsigned int bin; // Bin enumeration
       int device_idx; // Device
-      // std::shared_ptr<ALPAKA_ACCELERATOR_NAMESPACE::Queue> associated_queue_ptr; // Associated associated_queue
-      // std::shared_ptr<alpaka::Event<ALPAKA_ACCELERATOR_NAMESPACE::Queue>> ready_event_ptr; // Signal when associated queue has run to the point at which this block was freed
-
+      
       // Constructor (suitable for searching maps for a specific block, given its native device pointer and device id)
       BlockDescriptor(void* ptr, int dev_idx) 
           : d_ptr(ptr),
@@ -133,9 +127,7 @@ namespace cms::alpakatools::allocator {
             bytes(0),
             bytesRequested(0),  // CMS
             bin(INVALID_BIN),
-            device_idx(dev_idx)/*,
-            associated_queue_ptr(nullptr),
-            ready_event_ptr(nullptr)*/ {}
+            device_idx(dev_idx) {}
 
       // Constructor (suitable for searching maps for a range of suitable blocks, given a device id)
       BlockDescriptor(int dev_idx)
@@ -144,9 +136,7 @@ namespace cms::alpakatools::allocator {
             bytes(0),
             bytesRequested(0),  // CMS
             bin(INVALID_BIN),
-            device_idx(dev_idx)/*,
-            associated_queue_ptr(nullptr),
-            ready_event_ptr(nullptr)*/ {}
+            device_idx(dev_idx) {}
 
       // Comparison functor for comparing devices
       static bool PtrCompare(const BlockDescriptor &a, const BlockDescriptor &b) {
@@ -311,16 +301,13 @@ namespace cms::alpakatools::allocator {
     /**
      * \brief Provides a suitable allocation of device memory for the given size on the specified device.
      *
-     * Once freed, the allocation becomes available immediately for reuse within the \p active_queue
-     * with which it was associated with during allocation, and it becomes available for reuse within other
-     * queues when all prior work submitted to \p active_queue has completed.
+     * Once freed, the allocation becomes available immediately for reuse.
      */
     template <typename TData>
     auto DeviceAllocate(
         const alpaka_common::Extent& extent,                     ///< [in] Extent of the allocation
-        const ALPAKA_ACCELERATOR_NAMESPACE::Queue& active_queue) ///< [in] The queue to be associated with this allocation
+        const ALPAKA_ACCELERATOR_NAMESPACE::DevAcc1& device) ///< [in] The device to be associated with this allocation
     {
-      auto device = alpaka::getDev(active_queue);
       auto device_idx = getIdxOfDev(device);
       size_t bytes = alpakatools::nbytesFromExtent<TData>(extent);
       
@@ -328,8 +315,6 @@ namespace cms::alpakatools::allocator {
       bool found = false;
       BlockDescriptor search_key(device_idx);
       search_key.bytesRequested = bytes;  // CMS
-      // auto active_queue_ptr = std::make_shared<ALPAKA_ACCELERATOR_NAMESPACE::Queue>(active_queue);
-      // search_key.associated_queue_ptr = active_queue_ptr;
       NearestPowerOf(search_key.bin, search_key.bytes, bin_growth, bytes);
 
       if (search_key.bin > max_bin) {
@@ -348,13 +333,12 @@ namespace cms::alpakatools::allocator {
           search_key.bytes = min_bin_bytes;
         }
 
-        // Iterate through the range of cached blocks on the same device in the same bin
+        // Find a cached block on the same device in the same bin
         auto block_itr = cached_blocks.find(search_key);
         if (block_itr != cached_blocks.end()) {
           // Reuse existing cache block.  Insert into live blocks.
           found = true;
           search_key = *block_itr;
-          // search_key.associated_queue_ptr = active_queue_ptr;
           live_blocks.insert(search_key);
 
           // Remove from free blocks
@@ -390,7 +374,6 @@ namespace cms::alpakatools::allocator {
         search_key.buf_ptr = std::make_shared<ALPAKA_ACCELERATOR_NAMESPACE::AlpakaDeviceBuf<std::byte>>(
           std::move(buf)
         );
-        // search_key.ready_event_ptr = std::make_shared<alpaka::Event<ALPAKA_ACCELERATOR_NAMESPACE::Queue>>(device);
 
         // Insert into live blocks
         mutex.lock();
@@ -422,10 +405,6 @@ namespace cms::alpakatools::allocator {
 
     /**
      * \brief Frees a live allocation of device memory on the specified device, returning it to the allocator.
-     *
-     * Once freed, the allocation becomes available immediately for reuse within the \p active_queue
-     * with which it was associated with during allocation, and it becomes available for reuse within other
-     * queues when all prior work submitted to \p active_queue has completed.
      */
     void DeviceFree(void* d_ptr, int device_idx) 
     {
@@ -447,9 +426,6 @@ namespace cms::alpakatools::allocator {
           // Insert returned allocation into free blocks
           cached_blocks.insert(search_key);
           cached_bytes[device_idx].free += search_key.bytes;
-          /*if (search_key.associated_queue_ptr && search_key.ready_event_ptr) {
-            alpaka::enqueue(*(search_key.associated_queue_ptr), *(search_key.ready_event_ptr));
-          }*/
 
           /*if (debug)
             // CMS: improved debug message

@@ -107,7 +107,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       assert(tksoa);
 
       ZVertexAlpaka vertices{cms::alpakatools::make_device_unique<ZVertexSoA>(
-        1u, Queue{device})};
+        1u)};
       auto* soa = vertices.get();
       assert(soa);
 

@@ -94,7 +94,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                                                                float bfield,
                                                                Queue& queue) const {
     PixelTrackAlpaka tracks{cms::alpakatools::make_device_unique<pixelTrack::TrackSoA>(
-      1u, Queue{device})};
+      1u)};
     auto* soa = tracks.get();
 
     CAHitNtupletGeneratorKernels kernels(m_params, hits_d.nHits());

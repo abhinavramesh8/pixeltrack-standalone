@@ -582,11 +582,11 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
         assert(0 == wordCounter % 2);
         // wordCounter is the total no of words in each event to be trasfered on device
-        auto word_d = cms::alpakatools::make_device_unique<uint32_t>(wordCounter, Queue{device});
+        auto word_d = cms::alpakatools::make_device_unique<uint32_t>(wordCounter);
         // NB: IMPORTANT: fedId_d: In legacy, wordCounter elements are allocated.
         // However, only the first half of elements end up eventually used:
         // hence, here, only wordCounter/2 elements are allocated.
-        auto fedId_d = cms::alpakatools::make_device_unique<uint8_t>(wordCounter / 2, Queue{device});
+        auto fedId_d = cms::alpakatools::make_device_unique<uint8_t>(wordCounter / 2);
 
         auto word_d_view = cms::alpakatools::createDeviceView<uint32_t>(word_d.get(), wordCounter);
         auto fedId_d_view = cms::alpakatools::createDeviceView<uint8_t>(fedId_d.get(), wordCounter / 2);

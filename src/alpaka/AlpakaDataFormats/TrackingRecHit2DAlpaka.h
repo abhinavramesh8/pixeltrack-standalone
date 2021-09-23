@@ -20,24 +20,24 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
           // NON-OWNING DEVICE POINTERS:
           m_hitsModuleStart(hitsModuleStart),
           // OWNING DEVICE POINTERS:
-          m_xl{cms::alpakatools::make_device_unique<float>(nHits, Queue{device})},
-          m_yl{cms::alpakatools::make_device_unique<float>(nHits, Queue{device})},
-          m_xerr{cms::alpakatools::make_device_unique<float>(nHits, Queue{device})},
-          m_yerr{cms::alpakatools::make_device_unique<float>(nHits, Queue{device})},
-          m_xg{cms::alpakatools::make_device_unique<float>(nHits, Queue{device})},
-          m_yg{cms::alpakatools::make_device_unique<float>(nHits, Queue{device})},
-          m_zg{cms::alpakatools::make_device_unique<float>(nHits, Queue{device})},
-          m_rg{cms::alpakatools::make_device_unique<float>(nHits, Queue{device})},
-          m_iphi{cms::alpakatools::make_device_unique<int16_t>(nHits, Queue{device})},
-          m_charge{cms::alpakatools::make_device_unique<int32_t>(nHits, Queue{device})},
-          m_xsize{cms::alpakatools::make_device_unique<int16_t>(nHits, Queue{device})},
-          m_ysize{cms::alpakatools::make_device_unique<int16_t>(nHits, Queue{device})},
-          m_detInd{cms::alpakatools::make_device_unique<uint16_t>(nHits, Queue{device})},
-          m_averageGeometry{cms::alpakatools::make_device_unique<TrackingRecHit2DSOAView::AverageGeometry>(1u, Queue{device})},
-          m_hitsLayerStart{cms::alpakatools::make_device_unique<uint32_t>(nHits, Queue{device})},
-          m_hist{cms::alpakatools::make_device_unique<Hist>(1u, Queue{device})},
+          m_xl{cms::alpakatools::make_device_unique<float>(nHits)},
+          m_yl{cms::alpakatools::make_device_unique<float>(nHits)},
+          m_xerr{cms::alpakatools::make_device_unique<float>(nHits)},
+          m_yerr{cms::alpakatools::make_device_unique<float>(nHits)},
+          m_xg{cms::alpakatools::make_device_unique<float>(nHits)},
+          m_yg{cms::alpakatools::make_device_unique<float>(nHits)},
+          m_zg{cms::alpakatools::make_device_unique<float>(nHits)},
+          m_rg{cms::alpakatools::make_device_unique<float>(nHits)},
+          m_iphi{cms::alpakatools::make_device_unique<int16_t>(nHits)},
+          m_charge{cms::alpakatools::make_device_unique<int32_t>(nHits)},
+          m_xsize{cms::alpakatools::make_device_unique<int16_t>(nHits)},
+          m_ysize{cms::alpakatools::make_device_unique<int16_t>(nHits)},
+          m_detInd{cms::alpakatools::make_device_unique<uint16_t>(nHits)},
+          m_averageGeometry{cms::alpakatools::make_device_unique<TrackingRecHit2DSOAView::AverageGeometry>(1u)},
+          m_hitsLayerStart{cms::alpakatools::make_device_unique<uint32_t>(nHits)},
+          m_hist{cms::alpakatools::make_device_unique<Hist>(1u)},
           // SOA view:
-          m_view{cms::alpakatools::make_device_unique<TrackingRecHit2DSOAView>(1u, Queue{device})} {
+          m_view{cms::alpakatools::make_device_unique<TrackingRecHit2DSOAView>(1u)} {
       // the hits are actually accessed in order only in building
       // if ordering is relevant they may have to be stored phi-ordered by layer or so
       // this will break 1to1 correspondence with cluster and module locality

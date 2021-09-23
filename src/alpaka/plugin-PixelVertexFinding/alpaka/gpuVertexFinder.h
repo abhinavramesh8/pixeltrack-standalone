@@ -42,7 +42,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
                float ierrmax,  // max error to be "seed"
                float ichi2max  // max normalized distance to cluster
                )
-          : ws_dPtr(cms::alpakatools::make_device_unique<WorkSpace>(1u, Queue{device})),
+          : ws_dPtr(cms::alpakatools::make_device_unique<WorkSpace>(1u)),
             oneKernel_(oneKernel && !(useDBSCAN || useIterative)),
             useDensity_(useDensity),
             useDBSCAN_(useDBSCAN),

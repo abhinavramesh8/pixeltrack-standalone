@@ -1,5 +1,5 @@
-#ifndef CUDADataFormats_SiPixelDigi_interface_SiPixelDigiErrorsCUDA_h
-#define CUDADataFormats_SiPixelDigi_interface_SiPixelDigiErrorsCUDA_h
+#ifndef AlpakaDataFormats_SiPixelDigi_interface_SiPixelDigiErrorsCUDA_h
+#define AlpakaDataFormats_SiPixelDigi_interface_SiPixelDigiErrorsCUDA_h
 
 #include "DataFormats/PixelErrors.h"
 #include "AlpakaCore/SimpleVector.h"
@@ -13,8 +13,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   public:
     SiPixelDigiErrorsAlpaka() = default;
     explicit SiPixelDigiErrorsAlpaka(size_t maxFedWords, PixelFormatterErrors errors)
-        : data_d {cms::alpakatools::make_device_unique<PixelErrorCompact>(maxFedWords, Queue{device})},
-          error_d {cms::alpakatools::make_device_unique<cms::alpakatools::SimpleVector<PixelErrorCompact>>(1u, Queue{device})},
+        : data_d {cms::alpakatools::make_device_unique<PixelErrorCompact>(maxFedWords)},
+          error_d {cms::alpakatools::make_device_unique<cms::alpakatools::SimpleVector<PixelErrorCompact>>(1u)},
           error_h {cms::alpakatools::make_host_unique<cms::alpakatools::SimpleVector<PixelErrorCompact>>(1u, Queue{device})},
           formatterErrors_h{std::move(errors)} {
       auto perror_h = error_h.get();

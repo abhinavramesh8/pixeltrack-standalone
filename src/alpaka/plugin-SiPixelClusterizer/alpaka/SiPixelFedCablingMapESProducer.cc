@@ -32,14 +32,14 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     Queue queue(device);
 
     auto cablingMap_h{cms::alpakatools::createHostView<SiPixelFedCablingMapGPU>(&obj, 1u)};
-    auto cablingMap_d{cms::alpakatools::make_device_unique<SiPixelFedCablingMapGPU>(1u, Queue{device})};
+    auto cablingMap_d{cms::alpakatools::make_device_unique<SiPixelFedCablingMapGPU>(1u)};
     auto cablingMap_d_view = cms::alpakatools::createDeviceView<SiPixelFedCablingMapGPU>(
       cablingMap_d.get(), 1u);
     alpaka::memcpy(queue, cablingMap_d_view, cablingMap_h, 1u);
     eventSetup.put(std::make_unique<SiPixelFedCablingMapGPUWrapper>(std::move(cablingMap_d), true));
 
     auto modToUnp_h{cms::alpakatools::createHostView<unsigned char>(modToUnpDefault.data(), modToUnpDefSize)};
-    auto modToUnp_d{cms::alpakatools::make_device_unique<unsigned char>(modToUnpDefSize, Queue{device})};
+    auto modToUnp_d{cms::alpakatools::make_device_unique<unsigned char>(modToUnpDefSize)};
     auto modToUnp_d_view = cms::alpakatools::createDeviceView<unsigned char>(
       modToUnp_d.get(), modToUnpDefSize);
     alpaka::memcpy(queue, modToUnp_d_view, modToUnp_h, modToUnpDefSize);

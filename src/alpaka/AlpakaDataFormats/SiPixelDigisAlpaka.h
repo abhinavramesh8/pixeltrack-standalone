@@ -1,5 +1,5 @@
-#ifndef CUDADataFormats_SiPixelDigi_interface_SiPixelDigisCUDA_h
-#define CUDADataFormats_SiPixelDigi_interface_SiPixelDigisCUDA_h
+#ifndef AlpakaDataFormats_SiPixelDigi_interface_SiPixelDigisCUDA_h
+#define AlpakaDataFormats_SiPixelDigi_interface_SiPixelDigisCUDA_h
 
 #include "AlpakaCore/device_unique_ptr.h"
 #include "AlpakaCore/host_unique_ptr.h"
@@ -11,13 +11,13 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     SiPixelDigisAlpaka() = default;
     explicit SiPixelDigisAlpaka(size_t maxFedWords)
         : maxFedWords_ {maxFedWords},
-          xx_d{cms::alpakatools::make_device_unique<uint16_t>(maxFedWords, Queue{device})},
-          yy_d{cms::alpakatools::make_device_unique<uint16_t>(maxFedWords, Queue{device})},
-          adc_d{cms::alpakatools::make_device_unique<uint16_t>(maxFedWords, Queue{device})},
-          moduleInd_d{cms::alpakatools::make_device_unique<uint16_t>(maxFedWords, Queue{device})},
-          clus_d{cms::alpakatools::make_device_unique<int32_t>(maxFedWords, Queue{device})},
-          pdigi_d{cms::alpakatools::make_device_unique<uint32_t>(maxFedWords, Queue{device})},
-          rawIdArr_d{cms::alpakatools::make_device_unique<uint32_t>(maxFedWords, Queue{device})} {}
+          xx_d{cms::alpakatools::make_device_unique<uint16_t>(maxFedWords)},
+          yy_d{cms::alpakatools::make_device_unique<uint16_t>(maxFedWords)},
+          adc_d{cms::alpakatools::make_device_unique<uint16_t>(maxFedWords)},
+          moduleInd_d{cms::alpakatools::make_device_unique<uint16_t>(maxFedWords)},
+          clus_d{cms::alpakatools::make_device_unique<int32_t>(maxFedWords)},
+          pdigi_d{cms::alpakatools::make_device_unique<uint32_t>(maxFedWords)},
+          rawIdArr_d{cms::alpakatools::make_device_unique<uint32_t>(maxFedWords)} {}
     ~SiPixelDigisAlpaka() = default;
 
     SiPixelDigisAlpaka(const SiPixelDigisAlpaka &) = delete;

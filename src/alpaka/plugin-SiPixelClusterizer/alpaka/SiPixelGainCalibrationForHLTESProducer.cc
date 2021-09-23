@@ -48,7 +48,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     auto ped_h{cms::alpakatools::createHostView<SiPixelGainForHLTonGPU::DecodingStructure>(
         reinterpret_cast<SiPixelGainForHLTonGPU::DecodingStructure*>(gainData.data()), numDecodingStructures)};
     auto ped_d{cms::alpakatools::make_device_unique<SiPixelGainForHLTonGPU::DecodingStructure>(
-      numDecodingStructures, Queue{device})};
+      numDecodingStructures)};
     auto ped_d_view = cms::alpakatools::createDeviceView<SiPixelGainForHLTonGPU::DecodingStructure>(
       ped_d.get(), numDecodingStructures);
     alpaka::memcpy(queue, ped_d_view, ped_h, numDecodingStructures);
@@ -56,13 +56,13 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     auto rangeAndCols_h{
         cms::alpakatools::createHostView<SiPixelGainForHLTonGPU::RangeAndCols>(gain.rangeAndCols, 2000u)};
     auto rangeAndCols_d{cms::alpakatools::make_device_unique<SiPixelGainForHLTonGPU::RangeAndCols>(
-      2000u, Queue{device})};
+      2000u)};
     auto rangeAndCols_d_view = cms::alpakatools::createDeviceView<SiPixelGainForHLTonGPU::RangeAndCols>(
       rangeAndCols_d.get(), 2000u);
     alpaka::memcpy(queue, rangeAndCols_d_view, rangeAndCols_h, 2000u);
 
     auto fields_h{cms::alpakatools::createHostView<SiPixelGainForHLTonGPU::Fields>(&gain.fields_, 1u)};
-    auto fields_d{cms::alpakatools::make_device_unique<SiPixelGainForHLTonGPU::Fields>(1u, Queue{device})};
+    auto fields_d{cms::alpakatools::make_device_unique<SiPixelGainForHLTonGPU::Fields>(1u)};
     auto fields_d_view = cms::alpakatools::createDeviceView<SiPixelGainForHLTonGPU::Fields>(
       fields_d.get(), 1u);
     alpaka::memcpy(queue, fields_d_view, fields_h, 1u);

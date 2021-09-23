@@ -8,7 +8,7 @@ namespace cms::alpakatools {
   template <typename TData>
   auto allocate_device(
     const alpaka_common::Extent& extent,
-    const ALPAKA_ACCELERATOR_NAMESPACE::Queue& queue) 
+    const ALPAKA_ACCELERATOR_NAMESPACE::DevAcc1& device) 
   {
     static const size_t maxAllocationSize = 
       allocator::CachingDeviceAllocator::IntPow(allocator::binGrowth, allocator::maxBin);
@@ -18,10 +18,10 @@ namespace cms::alpakatools {
         throw std::runtime_error("Tried to allocate " + std::to_string(nbytes) +
                                  " bytes, but the allocator maximum is " + std::to_string(maxAllocationSize));
       }
-      return allocator::getCachingDeviceAllocator().DeviceAllocate<TData>(extent, queue);
+      return allocator::getCachingDeviceAllocator().DeviceAllocate<TData>(extent, device);
     }
     auto buf_ptr {new ALPAKA_ACCELERATOR_NAMESPACE::AlpakaDeviceBuf<std::byte>{
-      alpaka::allocBuf<std::byte, alpaka_common::Idx>(alpaka::getDev(queue), nbytes)}};
+      alpaka::allocBuf<std::byte, alpaka_common::Idx>(device, nbytes)}};
 #if CUDA_VERSION >= 11020
     if constexpr (allocator::policy == allocator::Policy::Asynchronous) {
       alpaka::prepareForAsyncCopy(*buf_ptr);

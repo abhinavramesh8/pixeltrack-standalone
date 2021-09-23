@@ -1,5 +1,5 @@
-#ifndef CUDADataFormats_SiPixelCluster_interface_SiPixelClustersCUDA_h
-#define CUDADataFormats_SiPixelCluster_interface_SiPixelClustersCUDA_h
+#ifndef AlpakaDataFormats_SiPixelCluster_interface_SiPixelClustersCUDA_h
+#define AlpakaDataFormats_SiPixelCluster_interface_SiPixelClustersCUDA_h
 
 #include "AlpakaCore/device_unique_ptr.h"
 
@@ -9,10 +9,10 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   public:
     SiPixelClustersAlpaka() = default;
     explicit SiPixelClustersAlpaka(size_t maxClusters)
-        : moduleStart_d{cms::alpakatools::make_device_unique<uint32_t>(maxClusters + 1, Queue{device})},
-          clusInModule_d{cms::alpakatools::make_device_unique<uint32_t>(maxClusters, Queue{device})},
-          moduleId_d{cms::alpakatools::make_device_unique<uint32_t>(maxClusters, Queue{device})},
-          clusModuleStart_d{cms::alpakatools::make_device_unique<uint32_t>(maxClusters + 1, Queue{device})} {}
+        : moduleStart_d{cms::alpakatools::make_device_unique<uint32_t>(maxClusters + 1)},
+          clusInModule_d{cms::alpakatools::make_device_unique<uint32_t>(maxClusters)},
+          moduleId_d{cms::alpakatools::make_device_unique<uint32_t>(maxClusters)},
+          clusModuleStart_d{cms::alpakatools::make_device_unique<uint32_t>(maxClusters + 1)} {}
     ~SiPixelClustersAlpaka() = default;
 
     SiPixelClustersAlpaka(const SiPixelClustersAlpaka &) = delete;

@@ -37,18 +37,17 @@ namespace cms {
     }    // namespace device
 
     template <typename TData>
-    auto make_device_unique(
-      const alpaka_common::Extent& extent, 
-      const ALPAKA_ACCELERATOR_NAMESPACE::Queue& queue) 
+    auto make_device_unique(const alpaka_common::Extent& extent) 
     {
+      const auto& device = ALPAKA_ACCELERATOR_NAMESPACE::device;
 #ifdef ALPAKA_ACC_GPU_CUDA_ENABLED
-      auto buf_ptr {allocate_device<TData>(extent, queue)};
-      auto device_idx {allocator::getIdxOfDev(alpaka::getDev(*buf_ptr))};
+      auto buf_ptr {allocate_device<TData>(extent, device)};
+      auto device_idx {allocator::getIdxOfDev(device)};
       void* d_ptr = alpaka::getPtrNative(*buf_ptr);
       return typename device::unique_ptr<TData> {
         reinterpret_cast<TData*>(d_ptr), device::impl::DeviceDeleter {buf_ptr, device_idx}};
 #else
-      return make_host_unique<TData>(extent, queue);
+      return make_host_unique<TData>(extent, ALPAKA_ACCELERATOR_NAMESPACE::Queue{device});
 #endif
     }
   }  // namespace alpakatools
