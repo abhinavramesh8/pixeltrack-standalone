@@ -672,9 +672,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
         auto moduleStartFirstElement = cms::alpakatools::createDeviceView<uint32_t>(clusters_d.moduleStart(), 1u);
 
-        /*auto nModules_Clusters_h_view = cms::alpakatools::createHostView<uint32_t>(
-          nModules_Clusters_h.get(), 2u);*/
-        alpaka::memcpy(queue, nModules_Clusters_h, moduleStartFirstElement, 1u);
+        auto nModules_Clusters_h_view = cms::alpakatools::createHostView<uint32_t>(
+          nModules_Clusters_h.get(), 2u);
+        alpaka::memcpy(queue, nModules_Clusters_h_view, moduleStartFirstElement, 1u);
 
         const WorkDiv1 &workDivMaxNumModules = cms::alpakatools::make_workdiv(Vec1::all(MaxNumModules), Vec1::all(256));
         // NB: With present findClus() / chargeCut() algorithm,
@@ -742,7 +742,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         alpaka::memcpy(queue, nModules_Clusters_1_h_view, clusModuleStartLastElement, 1u);
         // Wait for memory transfer to host to complete before looking at host data!
         alpaka::wait(queue);
-        auto p_nModules_Clusters_h = alpaka::getPtrNative(nModules_Clusters_h);
+        auto p_nModules_Clusters_h = nModules_Clusters_h.get();
         p_nModules_Clusters_h[1] = p_nModules_Clusters_1_h[0];
       }  // end clusterizer scope
     }
