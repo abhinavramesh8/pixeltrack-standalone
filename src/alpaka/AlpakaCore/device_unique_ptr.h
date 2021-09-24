@@ -47,7 +47,7 @@ namespace cms {
       return typename device::unique_ptr<TData> {
         reinterpret_cast<TData*>(d_ptr), device::impl::DeviceDeleter {buf_ptr, device_idx}};
 #else
-      return make_host_unique<TData>(extent, ALPAKA_ACCELERATOR_NAMESPACE::Queue{device});
+      return make_host_unique<TData>(extent);
 #endif
     }
   }  // namespace alpakatools

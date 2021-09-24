@@ -15,7 +15,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     explicit SiPixelDigiErrorsAlpaka(size_t maxFedWords, PixelFormatterErrors errors)
         : data_d {cms::alpakatools::make_device_unique<PixelErrorCompact>(maxFedWords)},
           error_d {cms::alpakatools::make_device_unique<cms::alpakatools::SimpleVector<PixelErrorCompact>>(1u)},
-          error_h {cms::alpakatools::make_host_unique<cms::alpakatools::SimpleVector<PixelErrorCompact>>(1u, Queue{device})},
+          error_h {cms::alpakatools::make_host_unique<cms::alpakatools::SimpleVector<PixelErrorCompact>>(1u)},
           formatterErrors_h{std::move(errors)} {
       auto perror_h = error_h.get();
       perror_h->construct(maxFedWords, data_d.get());

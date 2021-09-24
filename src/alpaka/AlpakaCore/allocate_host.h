@@ -6,9 +6,7 @@
 namespace cms::alpakatools {
   // Allocate pinned host memory (to be called from unique_ptr)
   template <typename TData>
-  auto allocate_host(
-    const alpaka_common::Extent& extent, 
-    const ALPAKA_ACCELERATOR_NAMESPACE::Queue& queue) 
+  auto allocate_host(const alpaka_common::Extent& extent) 
   {
     static const size_t maxAllocationSize = 
       allocator::CachingDeviceAllocator::IntPow(allocator::binGrowth, allocator::maxBin);
@@ -18,7 +16,7 @@ namespace cms::alpakatools {
         throw std::runtime_error("Tried to allocate " + std::to_string(nbytes) +
                                  " bytes, but the allocator maximum is " + std::to_string(maxAllocationSize));
       }
-      return allocator::getCachingHostAllocator().HostAllocate<TData>(extent, queue);
+      return allocator::getCachingHostAllocator().HostAllocate<TData>(extent);
     }
     auto buf_ptr {new alpaka_common::AlpakaHostBuf<std::byte>{
       alpakatools::allocHostBuf<std::byte>(nbytes)}};

@@ -33,10 +33,9 @@ namespace cms {
     // Allocate pinned host memory
     template <typename TData>
     typename host::unique_ptr<TData> make_host_unique(
-      const alpaka_common::Extent& extent, 
-      const ALPAKA_ACCELERATOR_NAMESPACE::Queue& queue) 
+      const alpaka_common::Extent& extent) 
     {
-      auto buf_ptr {allocate_host<TData>(extent, queue)};
+      auto buf_ptr {allocate_host<TData>(extent)};
       void* d_ptr = alpaka::getPtrNative(*buf_ptr);
       return typename host::unique_ptr<TData> {
         reinterpret_cast<TData*>(d_ptr), host::impl::HostDeleter {buf_ptr}};

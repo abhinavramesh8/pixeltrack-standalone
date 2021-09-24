@@ -74,8 +74,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
 #ifdef ALPAKA_ACC_GPU_CUDA_ENABLED
     auto const& inputData = iEvent.get(tokenAlpaka_);
-    auto outputData = cms::alpakatools::make_host_unique<pixelTrack::TrackSoA>(
-      1u, Queue{device});
+    auto outputData = cms::alpakatools::make_host_unique<pixelTrack::TrackSoA>(1u);
     Queue queue(device);
     auto const inputDataView = cms::alpakatools::createDeviceView<pixelTrack::TrackSoA>(
       inputData.get(), 1u);

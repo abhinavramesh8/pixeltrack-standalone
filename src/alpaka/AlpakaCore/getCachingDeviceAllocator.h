@@ -30,8 +30,9 @@ namespace cms::alpakatools::allocator {
 
   inline size_t minCachedBytes() {
     size_t ret = std::numeric_limits<size_t>::max();
-    for (const auto& device: getDevs()) {
-      const size_t freeMemory {::alpaka::getFreeMemBytes(device)};
+    const auto devices {alpaka::getDevs<ALPAKA_ACCELERATOR_NAMESPACE::PltfAcc1>()};
+    for (const auto& device: devices) {
+      const size_t freeMemory {alpaka::getFreeMemBytes(device)};
       ret = std::min(ret, static_cast<size_t>(maxCachedFraction * freeMemory));
     }
     if (maxCachedBytes > 0) {

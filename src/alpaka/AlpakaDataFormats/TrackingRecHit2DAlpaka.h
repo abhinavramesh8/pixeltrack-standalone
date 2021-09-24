@@ -1,5 +1,5 @@
-#ifndef CUDADataFormats_TrackingRecHit_interface_TrackingRecHit2DHeterogeneous_h
-#define CUDADataFormats_TrackingRecHit_interface_TrackingRecHit2DHeterogeneous_h
+#ifndef AlpakaDataFormats_TrackingRecHit_interface_TrackingRecHit2DHeterogeneous_h
+#define AlpakaDataFormats_TrackingRecHit_interface_TrackingRecHit2DHeterogeneous_h
 
 #include "AlpakaDataFormats/TrackingRecHit2DSOAView.h"
 #include "AlpakaCore/device_unique_ptr.h"
@@ -100,77 +100,77 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     auto const* c_iphi() const { return m_iphi.get(); }
 
     auto xlToHostAsync(Queue& queue) const {
-      auto ret = cms::alpakatools::make_host_unique<float>(nHits(), Queue{device});
+      auto ret = cms::alpakatools::make_host_unique<float>(nHits());
       auto view_ret = cms::alpakatools::createHostView<float>(ret.get(), nHits());
       auto view_m_xl = cms::alpakatools::createDeviceView<float>(m_xl.get(), nHits());
       alpaka::memcpy(queue, view_ret, view_m_xl, nHits());
       return ret;
     }
     auto ylToHostAsync(Queue& queue) const {
-      auto ret = cms::alpakatools::make_host_unique<float>(nHits(), Queue{device});
+      auto ret = cms::alpakatools::make_host_unique<float>(nHits());
       auto view_ret = cms::alpakatools::createHostView<float>(ret.get(), nHits());
       auto view_m_yl = cms::alpakatools::createDeviceView<float>(m_yl.get(), nHits());
       alpaka::memcpy(queue, view_ret, view_m_yl, nHits());
       return ret;
     }
     auto xerrToHostAsync(Queue& queue) const {
-      auto ret = cms::alpakatools::make_host_unique<float>(nHits(), Queue{device});
+      auto ret = cms::alpakatools::make_host_unique<float>(nHits());
       auto view_ret = cms::alpakatools::createHostView<float>(ret.get(), nHits());
       auto view_m_xerr = cms::alpakatools::createDeviceView<float>(m_xerr.get(), nHits());
       alpaka::memcpy(queue, view_ret, view_m_xerr, nHits());
       return ret;
     }
     auto yerrToHostAsync(Queue& queue) const {
-      auto ret = cms::alpakatools::make_host_unique<float>(nHits(), Queue{device});
+      auto ret = cms::alpakatools::make_host_unique<float>(nHits());
       auto view_ret = cms::alpakatools::createHostView<float>(ret.get(), nHits());
       auto view_m_yerr = cms::alpakatools::createDeviceView<float>(m_yerr.get(), nHits());
       alpaka::memcpy(queue, view_ret, view_m_yerr, nHits());
       return ret;
     }
     auto xgToHostAsync(Queue& queue) const {
-      auto ret = cms::alpakatools::make_host_unique<float>(nHits(), Queue{device});
+      auto ret = cms::alpakatools::make_host_unique<float>(nHits());
       auto view_ret = cms::alpakatools::createHostView<float>(ret.get(), nHits());
       auto view_m_xg = cms::alpakatools::createDeviceView<float>(m_xg.get(), nHits());
       alpaka::memcpy(queue, view_ret, view_m_xg, nHits());
       return ret;
     }
     auto ygToHostAsync(Queue& queue) const {
-      auto ret = cms::alpakatools::make_host_unique<float>(nHits(), Queue{device});
+      auto ret = cms::alpakatools::make_host_unique<float>(nHits());
       auto view_ret = cms::alpakatools::createHostView<float>(ret.get(), nHits());
       auto view_m_yg = cms::alpakatools::createDeviceView<float>(m_yg.get(), nHits());
       alpaka::memcpy(queue, view_ret, view_m_yg, nHits());
       return ret;
     }
     auto zgToHostAsync(Queue& queue) const {
-      auto ret = cms::alpakatools::make_host_unique<float>(nHits(), Queue{device});
+      auto ret = cms::alpakatools::make_host_unique<float>(nHits());
       auto view_ret = cms::alpakatools::createHostView<float>(ret.get(), nHits());
       auto view_m_zg = cms::alpakatools::createDeviceView<float>(m_zg.get(), nHits());
       alpaka::memcpy(queue, view_ret, view_m_zg, nHits());
       return ret;
     }
     auto rgToHostAsync(Queue& queue) const {
-      auto ret = cms::alpakatools::make_host_unique<float>(nHits(), Queue{device});
+      auto ret = cms::alpakatools::make_host_unique<float>(nHits());
       auto view_ret = cms::alpakatools::createHostView<float>(ret.get(), nHits());
       auto view_m_rg = cms::alpakatools::createDeviceView<float>(m_rg.get(), nHits());
       alpaka::memcpy(queue, view_ret, view_m_rg, nHits());
       return ret;
     }
     auto chargeToHostAsync(Queue& queue) const {
-      auto ret = cms::alpakatools::make_host_unique<int32_t>(nHits(), Queue{device});
+      auto ret = cms::alpakatools::make_host_unique<int32_t>(nHits());
       auto view_ret = cms::alpakatools::createHostView<int32_t>(ret.get(), nHits());
       auto view_m_charge = cms::alpakatools::createDeviceView<int32_t>(m_charge.get(), nHits());
       alpaka::memcpy(queue, view_ret, view_m_charge, nHits());
       return ret;
     }
     auto xsizeToHostAsync(Queue& queue) const {
-      auto ret = cms::alpakatools::make_host_unique<int16_t>(nHits(), Queue{device});
+      auto ret = cms::alpakatools::make_host_unique<int16_t>(nHits());
       auto view_ret = cms::alpakatools::createHostView<int16_t>(ret.get(), nHits());
       auto view_m_xsize = cms::alpakatools::createDeviceView<int16_t>(m_xsize.get(), nHits());
       alpaka::memcpy(queue, view_ret, view_m_xsize, nHits());
       return ret;
     }
     auto ysizeToHostAsync(Queue& queue) const {
-      auto ret = cms::alpakatools::make_host_unique<int16_t>(nHits(), Queue{device});
+      auto ret = cms::alpakatools::make_host_unique<int16_t>(nHits());
       auto view_ret = cms::alpakatools::createHostView<int16_t>(ret.get(), nHits());
       auto view_m_ysize = cms::alpakatools::createDeviceView<int16_t>(m_ysize.get(), nHits());
       alpaka::memcpy(queue, view_ret, view_m_ysize, nHits());

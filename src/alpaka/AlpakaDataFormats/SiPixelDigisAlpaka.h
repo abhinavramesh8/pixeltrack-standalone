@@ -59,7 +59,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
     // TO DO: nothing async in here for now... Pass the queue as argument instead, and don't wait anymore!
     auto adcToHostAsync(Queue &queue) const {
-      auto ret = cms::alpakatools::make_host_unique<uint16_t>(nDigis(), Queue{device});
+      auto ret = cms::alpakatools::make_host_unique<uint16_t>(nDigis());
       auto ret_view = cms::alpakatools::createHostView<uint16_t>(ret.get(), nDigis());
       auto adc_d_view = cms::alpakatools::createDeviceView<uint16_t>(adc_d.get(), maxFedWords_);
       alpaka::memcpy(queue, ret_view, adc_d_view, nDigis());
