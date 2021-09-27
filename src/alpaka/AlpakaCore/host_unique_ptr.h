@@ -12,17 +12,17 @@ namespace cms {
 
         class HostDeleter {
         public:
-          HostDeleter(alpaka_common::AlpakaHostBuf<std::byte>* buffer_ptr) 
-            : buf_ptr {buffer_ptr} {}
+          HostDeleter(alpaka_common::AlpakaHostBuf<std::byte>&& buffer) 
+            : buf {std::move(buffer)} {}
 
           void operator()(void* d_ptr) { 
             if (d_ptr) {
-              cms::alpakatools::free_host(d_ptr, buf_ptr);
+              cms::alpakatools::free_host(d_ptr);
             } 
           }
         
         private:
-          alpaka_common::AlpakaHostBuf<std::byte>* buf_ptr;
+          alpaka_common::AlpakaHostBuf<std::byte> buf;
         };
       }  // namespace impl
 
@@ -35,10 +35,10 @@ namespace cms {
     typename host::unique_ptr<TData> make_host_unique(
       const alpaka_common::Extent& extent) 
     {
-      auto buf_ptr {allocate_host<TData>(extent)};
-      void* d_ptr = alpaka::getPtrNative(*buf_ptr);
+      auto buf {allocate_host<TData>(extent)};
+      void* d_ptr = alpaka::getPtrNative(buf);
       return typename host::unique_ptr<TData> {
-        reinterpret_cast<TData*>(d_ptr), host::impl::HostDeleter {buf_ptr}};
+        reinterpret_cast<TData*>(d_ptr), host::impl::HostDeleter {std::move(buf)}};
     }
   }  // namespace alpakatools
 }  // namespace cms

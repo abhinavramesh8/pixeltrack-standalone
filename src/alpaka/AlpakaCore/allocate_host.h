@@ -18,21 +18,17 @@ namespace cms::alpakatools {
       }
       return allocator::getCachingHostAllocator().HostAllocate<TData>(extent);
     }
-    auto buf_ptr {new alpaka_common::AlpakaHostBuf<std::byte>{
-      alpakatools::allocHostBuf<std::byte>(nbytes)}};
+    auto buf {allocHostBuf<std::byte>(nbytes)};
     if constexpr (allocator::policy == allocator::Policy::Asynchronous) {
-      alpaka::prepareForAsyncCopy(*buf_ptr);
+      alpaka::prepareForAsyncCopy(buf);
     }
-    return buf_ptr;
+    return buf;
   }
 
   // Free pinned host memory (to be called from unique_ptr)
-  inline void free_host(
-    void* d_ptr, alpaka_common::AlpakaHostBuf<std::byte>* buf_ptr) {
+  inline void free_host(void* d_ptr) {
     if constexpr (allocator::policy == allocator::Policy::Caching) {
       allocator::getCachingHostAllocator().HostFree(d_ptr);
-    } else {
-      delete buf_ptr;
     }
   }
 }  // namespace cms::alpakatools

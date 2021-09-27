@@ -120,14 +120,14 @@ namespace cms::alpakatools::allocator {
      */
     struct BlockDescriptor {
       void* d_ptr; // Native host pointer
-      std::shared_ptr<alpaka_common::AlpakaHostBuf<std::byte>> buf_ptr; // Host buffer
+      alpaka_common::AlpakaHostBuf<std::byte> buf; // Host buffer
       size_t bytes; // Size of allocation in bytes
       unsigned int bin; // Bin enumeration
    
       // Constructor (suitable for searching maps for a specific block, given its native host pointer)
       BlockDescriptor(void* ptr)
           : d_ptr(ptr),
-            buf_ptr(nullptr),
+            buf(cms::alpakatools::allocHostBuf<std::byte>(0u)),
             bytes(0),
             bin(INVALID_BIN) {}
     };
@@ -257,7 +257,7 @@ namespace cms::alpakatools::allocator {
      * which delineates five bin-sizes: 512B, 4KB, 32KB, 256KB, and 2MB and
      * sets a maximum of 6,291,455 cached bytes
      */
-    CachingHostAllocator(/*bool skip_cleanup = false, */bool debug = false)
+    CachingHostAllocator(bool debug = false)
         : bin_growth(8),
           min_bin(3),
           max_bin(7),
@@ -360,9 +360,7 @@ namespace cms::alpakatools::allocator {
           static_cast<alpaka_common::Extent>(search_key.bytes))};
         alpaka::prepareForAsyncCopy(buf);
         search_key.d_ptr = alpaka::getPtrNative(buf);
-        search_key.buf_ptr = std::make_shared<alpaka_common::AlpakaHostBuf<std::byte>>(
-          std::move(buf)
-        );
+        search_key.buf = std::move(buf);
         
         // Insert into live blocks
         mutex_locker.lock();
@@ -392,7 +390,7 @@ namespace cms::alpakatools::allocator {
                (long long)cached_bytes.live);
       */
 
-      return search_key.buf_ptr.get();
+      return search_key.buf;
     }
 
     /**
