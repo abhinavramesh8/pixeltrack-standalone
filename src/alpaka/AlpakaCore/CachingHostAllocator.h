@@ -274,8 +274,7 @@ namespace cms::alpakatools::allocator {
      */
     void SetMaxCachedBytes(size_t max_cached_bytes) {
       // Lock
-      // std::unique_lock mutex_locker(mutex);
-      mutex.lock();
+      std::unique_lock mutex_locker(mutex);
 
       if (debug)
         printf("Changing max_cached_bytes (%lld -> %lld)\n",
@@ -285,7 +284,7 @@ namespace cms::alpakatools::allocator {
       this->max_cached_bytes = max_cached_bytes;
 
       // Unlock (redundant, kept for style uniformity)
-      mutex.unlock();
+      mutex_locker.unlock();
     }
 
     /**
@@ -298,7 +297,7 @@ namespace cms::alpakatools::allocator {
       const alpaka_common::Extent& extent ///< [in] Extent of the allocation
     )
     {
-      // std::unique_lock<std::mutex> mutex_locker(mutex, std::defer_lock);
+      std::unique_lock<std::mutex> mutex_locker(mutex, std::defer_lock);
       size_t bytes = cms::alpakatools::nbytesFromExtent<TData>(extent);
 
       // Create a block descriptor for the requested allocation
@@ -314,7 +313,7 @@ namespace cms::alpakatools::allocator {
         search_key.bytes = bytes;
       } else {
         // Search for a suitable cached allocation: lock
-        mutex.lock();
+        mutex_locker.lock();
 
         if (search_key.bin < min_bin) {
           // Bin is less than minimum bin: round up
@@ -351,7 +350,7 @@ namespace cms::alpakatools::allocator {
         }
 
         // Done searching: unlock
-        mutex.unlock();
+        mutex_locker.unlock();
       }
 
       // Allocate the block if necessary
@@ -366,10 +365,10 @@ namespace cms::alpakatools::allocator {
         );
         
         // Insert into live blocks
-        mutex.lock();
+        mutex_locker.lock();
         live_blocks.insert(search_key);
         cached_bytes.live += search_key.bytes;
-        mutex.unlock();
+        mutex_locker.unlock();
 
         /*
         if (debug)
@@ -403,8 +402,7 @@ namespace cms::alpakatools::allocator {
      */
     void HostFree(void* d_ptr) {
       // Lock
-      // std::unique_lock<std::mutex> mutex_locker(mutex);
-      mutex.lock();
+      std::unique_lock<std::mutex> mutex_locker(mutex);
 
       // Find corresponding block descriptor
       BlockDescriptor search_key(d_ptr);
@@ -438,7 +436,7 @@ namespace cms::alpakatools::allocator {
       }
 
       // Unlock
-      mutex.unlock();
+      mutex_locker.unlock();
 
       /*
       if (!recached and debug)
