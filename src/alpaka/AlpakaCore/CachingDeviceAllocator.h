@@ -39,7 +39,7 @@
  ******************************************************************************/
 
 #include <cmath>
-#include <set>
+#include <unordered_set>
 #include <memory>
 #include <mutex>
 
@@ -137,34 +137,43 @@ namespace cms::alpakatools::allocator {
             bytesRequested(0),  // CMS
             bin(INVALID_BIN),
             device_idx(dev_idx) {}
+    };
 
-      // Comparison functor for comparing devices
-      static bool PtrCompare(const BlockDescriptor &a, const BlockDescriptor &b) {
-        if (a.device_idx == b.device_idx)
-          return (a.d_ptr < b.d_ptr);
-        else
-          return (a.device_idx < b.device_idx);
-      }
-
-      // Comparison functor for comparing allocation sizes
-      static bool SizeCompare(const BlockDescriptor &a, const BlockDescriptor &b) {
-        if (a.device_idx == b.device_idx)
-          return (a.bytes < b.bytes);
-        else
-          return (a.device_idx < b.device_idx);
+    struct BlockHashByBytes {
+      size_t operator()(const BlockDescriptor& descriptor) const {
+        size_t h1 = std::hash<int>{}(descriptor.device_idx);
+        size_t h2 = std::hash<size_t>{}(descriptor.bytes);
+        return h1 ^ (h2 << 1);
       }
     };
 
-    /// BlockDescriptor comparator function interface
-    typedef bool (*Compare)(const BlockDescriptor &, const BlockDescriptor &);
+    struct BlockEqualByBytes {
+      bool operator()(const BlockDescriptor& a, const BlockDescriptor& b) const {
+        return (a.device_idx == b.device_idx && a.bytes == b.bytes);
+      }
+    };
+
+    struct BlockHashByPtr {
+      size_t operator()(const BlockDescriptor& descriptor) const {
+        size_t h1 = std::hash<int>{}(descriptor.device_idx);
+        size_t h2 = std::hash<void*>{}(descriptor.d_ptr);
+        return h1 ^ (h2 << 1);
+      }
+    };
+
+    struct BlockEqualByPtr {
+      bool operator()(const BlockDescriptor& a, const BlockDescriptor& b) const {
+        return (a.device_idx == b.device_idx && a.d_ptr == b.d_ptr);
+      }
+    };
 
     // CMS: Moved TotalBytes to deviceAllocatorStatus.h
 
-    /// Set type for cached blocks (ordered by size)
-    typedef std::multiset<BlockDescriptor, Compare> CachedBlocks;
+    /// Set type for cached blocks (hashed by size)
+    using CachedBlocks = std::unordered_multiset<BlockDescriptor, BlockHashByBytes, BlockEqualByBytes>;
 
-    /// Set type for live blocks (ordered by ptr)
-    typedef std::multiset<BlockDescriptor, Compare> BusyBlocks;
+    /// Set type for live blocks (hashed by ptr)
+    using BusyBlocks = std::unordered_multiset<BlockDescriptor, BlockHashByPtr, BlockEqualByPtr>;
 
     // CMS: Moved DeviceCachedBytes to deviceAllocatorStatus.h
 
@@ -249,9 +258,7 @@ namespace cms::alpakatools::allocator {
           min_bin_bytes(IntPow(bin_growth, min_bin)),
           max_bin_bytes(IntPow(bin_growth, max_bin)),
           max_cached_bytes(max_cached_bytes),
-          debug(debug),
-          cached_blocks(BlockDescriptor::SizeCompare),
-          live_blocks(BlockDescriptor::PtrCompare) {}
+          debug(debug) {}
 
     /**
      * \brief Default constructor.
@@ -273,9 +280,7 @@ namespace cms::alpakatools::allocator {
           min_bin_bytes(IntPow(bin_growth, min_bin)),
           max_bin_bytes(IntPow(bin_growth, max_bin)),
           max_cached_bytes((max_bin_bytes * 3) - 1),
-          debug(debug),
-          cached_blocks(BlockDescriptor::SizeCompare),
-          live_blocks(BlockDescriptor::PtrCompare) {}
+          debug(debug) {}
 
     /**
      * \brief Sets the limit on the number bytes this allocator is allowed to cache per device.

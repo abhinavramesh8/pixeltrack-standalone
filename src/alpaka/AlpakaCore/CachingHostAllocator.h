@@ -40,7 +40,7 @@
 
 #include <cmath>
 #include <memory>
-#include <set>
+#include <unordered_set>
 #include <mutex>
 
 #include "AlpakaCore/alpakaMemoryHelper.h"
@@ -130,24 +130,37 @@ namespace cms::alpakatools::allocator {
             buf_ptr(nullptr),
             bytes(0),
             bin(INVALID_BIN) {}
-
-      // Comparison functor for comparing host pointers
-      static bool PtrCompare(const BlockDescriptor &a, const BlockDescriptor &b) {
-        return (a.d_ptr < b.d_ptr); 
-      }
-
-      // Comparison functor for comparing allocation sizes
-      static bool SizeCompare(const BlockDescriptor &a, const BlockDescriptor &b) { return (a.bytes < b.bytes); }
     };
 
-    /// BlockDescriptor comparator function interface
-    typedef bool (*Compare)(const BlockDescriptor &, const BlockDescriptor &);
+    struct BlockHashByBytes {
+      size_t operator()(const BlockDescriptor& descriptor) const {
+        return std::hash<size_t>{}(descriptor.bytes);
+      }
+    };
 
-    /// Set type for cached blocks (ordered by size)
-    typedef std::multiset<BlockDescriptor, Compare> CachedBlocks;
+    struct BlockEqualByBytes {
+      bool operator()(const BlockDescriptor& a, const BlockDescriptor& b) const {
+        return (a.bytes == b.bytes);
+      }
+    };
 
-    /// Set type for live blocks (ordered by ptr)
-    typedef std::multiset<BlockDescriptor, Compare> BusyBlocks;
+    struct BlockHashByPtr {
+      size_t operator()(const BlockDescriptor& descriptor) const {
+        return std::hash<void*>{}(descriptor.d_ptr);
+      }
+    };
+
+    struct BlockEqualByPtr {
+      bool operator()(const BlockDescriptor& a, const BlockDescriptor& b) const {
+        return (a.d_ptr == b.d_ptr);
+      }
+    };
+
+    /// Set type for cached blocks (hashed by size)
+    using CachedBlocks = std::unordered_multiset<BlockDescriptor, BlockHashByBytes, BlockEqualByBytes>;
+
+    /// Set type for live blocks (hashed by ptr)
+    using BusyBlocks = std::unordered_multiset<BlockDescriptor, BlockHashByPtr, BlockEqualByPtr>;
 
     //---------------------------------------------------------------------
     // Utility functions
@@ -229,9 +242,7 @@ namespace cms::alpakatools::allocator {
           min_bin_bytes(IntPow(bin_growth, min_bin)),
           max_bin_bytes(IntPow(bin_growth, max_bin)),
           max_cached_bytes(max_cached_bytes),
-          debug(debug),
-          cached_blocks(BlockDescriptor::SizeCompare),
-          live_blocks(BlockDescriptor::PtrCompare) {}
+          debug(debug) {}
 
     /**
      * \brief Default constructor.
@@ -253,9 +264,7 @@ namespace cms::alpakatools::allocator {
           min_bin_bytes(IntPow(bin_growth, min_bin)),
           max_bin_bytes(IntPow(bin_growth, max_bin)),
           max_cached_bytes((max_bin_bytes * 3) - 1),
-          debug(debug),
-          cached_blocks(BlockDescriptor::SizeCompare),
-          live_blocks(BlockDescriptor::PtrCompare) {}
+          debug(debug) {}
 
     /**
      * \brief Sets the limit on the number bytes this allocator is allowed to cache
