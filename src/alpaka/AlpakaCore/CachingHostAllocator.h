@@ -119,17 +119,20 @@ namespace cms::alpakatools::allocator {
      * Descriptor for pinned host memory allocations
      */
     struct BlockDescriptor {
-      void* d_ptr; // Native host pointer
       alpaka_common::AlpakaHostBuf<std::byte> buf; // Host buffer
       size_t bytes; // Size of allocation in bytes
       unsigned int bin; // Bin enumeration
    
-      // Constructor (suitable for searching maps for a specific block, given its native host pointer)
-      BlockDescriptor(void* ptr)
-          : d_ptr(ptr),
-            buf(cms::alpakatools::allocHostBuf<std::byte>(0u)),
-            bytes(0),
-            bin(INVALID_BIN) {}
+      // Constructor (suitable for searching maps for a specific block, given its host buffer)
+      BlockDescriptor(alpaka_common::AlpakaHostBuf<std::byte> buffer)
+          : buf {std::move(buffer)},
+            bytes {0},
+            bin {INVALID_BIN} {}
+      
+      BlockDescriptor(unsigned int block_bin, size_t block_bytes)
+        : buf {allocHostBuf<std::byte>(0u)},
+          bytes {block_bytes},
+          bin {block_bin} {}
     };
 
     struct BlockHashByBytes {
@@ -145,14 +148,14 @@ namespace cms::alpakatools::allocator {
     };
 
     struct BlockHashByPtr {
-      size_t operator()(const BlockDescriptor& descriptor) const {
-        return std::hash<void*>{}(descriptor.d_ptr);
+      size_t operator()(const BlockDescriptor& descriptor) const { 
+        return std::hash<const std::byte*>{}(alpaka::getPtrNative(descriptor.buf));
       }
     };
 
     struct BlockEqualByPtr {
       bool operator()(const BlockDescriptor& a, const BlockDescriptor& b) const {
-        return (a.d_ptr == b.d_ptr);
+        return (alpaka::getPtrNative(a.buf) == alpaka::getPtrNative(b.buf));
       }
     };
 
@@ -184,21 +187,22 @@ namespace cms::alpakatools::allocator {
     /**
      * Round up to the nearest power-of
      */
-    void NearestPowerOf(unsigned int &power, size_t &rounded_bytes, unsigned int base, size_t value) {
-      power = 0;
-      rounded_bytes = 1;
+    std::pair<unsigned int, size_t> NearestPowerOf(unsigned int base, size_t value) {
+      unsigned int power = 0;
+      size_t rounded_bytes = 1;
 
       if (value * base < value) {
         // Overflow
         power = sizeof(size_t) * 8;
         rounded_bytes = size_t(0) - 1;
-        return;
+      } else {
+        while (rounded_bytes < value) {
+          rounded_bytes *= base;
+          power++;
+        }
       }
 
-      while (rounded_bytes < value) {
-        rounded_bytes *= base;
-        power++;
-      }
+      return {power, rounded_bytes};
     }
 
     //---------------------------------------------------------------------
@@ -292,18 +296,16 @@ namespace cms::alpakatools::allocator {
      *
      * Once freed, the allocation becomes available immediately for reuse.
      */
-    template <typename TData>
     auto HostAllocate(
-      const alpaka_common::Extent& extent ///< [in] Extent of the allocation
+      size_t bytes ///< [in] Minimum no. of bytes for the allocation
     )
     {
       std::unique_lock<std::mutex> mutex_locker(mutex, std::defer_lock);
-      size_t bytes = cms::alpakatools::nbytesFromExtent<TData>(extent);
 
       // Create a block descriptor for the requested allocation
       bool found = false;
-      BlockDescriptor search_key(nullptr);
-      NearestPowerOf(search_key.bin, search_key.bytes, bin_growth, bytes);
+      auto [search_key_bin, search_key_bytes] = NearestPowerOf(bin_growth, bytes);
+      BlockDescriptor search_key {search_key_bin, search_key_bytes};
 
       if (search_key.bin > max_bin) {
         // Bin is greater than our maximum bin: allocate the request
@@ -356,10 +358,9 @@ namespace cms::alpakatools::allocator {
       // Allocate the block if necessary
       if (!found) {
         // TODO: eventually support allocation flags
-        auto buf {cms::alpakatools::allocHostBuf<std::byte>(
+        auto buf {allocHostBuf<std::byte>(
           static_cast<alpaka_common::Extent>(search_key.bytes))};
         alpaka::prepareForAsyncCopy(buf);
-        search_key.d_ptr = alpaka::getPtrNative(buf);
         search_key.buf = std::move(buf);
         
         // Insert into live blocks
@@ -398,12 +399,12 @@ namespace cms::alpakatools::allocator {
      *
      * Once freed, the allocation becomes available immediately for reuse.
      */
-    void HostFree(void* d_ptr) {
+    void HostFree(const alpaka_common::AlpakaHostBuf<std::byte>& buf) {
       // Lock
       std::unique_lock<std::mutex> mutex_locker(mutex);
 
       // Find corresponding block descriptor
-      BlockDescriptor search_key(d_ptr);
+      BlockDescriptor search_key {buf};
       auto block_itr = live_blocks.find(search_key);
       if (block_itr != live_blocks.end()) {
         // Remove from live blocks

@@ -16,11 +16,11 @@ namespace cms::alpakatools::allocator {
 #else
   constexpr Policy policy = Policy::Synchronous;
 #endif
-  // Growth factor (bin_growth in cub::CachingDeviceAllocator
+  // Growth factor (bin_growth in CachingDeviceAllocator
   constexpr unsigned int binGrowth = 2;
-  // Smallest bin, corresponds to binGrowth^minBin bytes (min_bin in cub::CacingDeviceAllocator
+  // Smallest bin, corresponds to binGrowth^minBin bytes (min_bin in CacingDeviceAllocator
   constexpr unsigned int minBin = 8;
-  // Largest bin, corresponds to binGrowth^maxBin bytes (max_bin in cub::CachingDeviceAllocator). Note that unlike in cub, allocations larger than binGrowth^maxBin are set to fail.
+  // Largest bin, corresponds to binGrowth^maxBin bytes (max_bin in CachingDeviceAllocator). Note that unlike in cub, allocations larger than binGrowth^maxBin are set to fail.
   constexpr unsigned int maxBin = 30;
   // Total storage for the allocator. 0 means no limit.
   constexpr size_t maxCachedBytes = 0;

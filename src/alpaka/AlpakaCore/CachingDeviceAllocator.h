@@ -184,7 +184,7 @@ namespace cms::alpakatools::allocator {
     /**
      * Integer pow function for unsigned base and exponent
      */
-    static unsigned int IntPow(unsigned int base, unsigned int exp) {
+    static constexpr unsigned int IntPow(unsigned int base, unsigned int exp) {
       unsigned int retval = 1;
       while (exp > 0) {
         if (exp & 1) {
@@ -376,6 +376,7 @@ namespace cms::alpakatools::allocator {
       if (!found) {
         auto buf {alpaka::allocBuf<std::byte, alpaka_common::Idx>(
           device, static_cast<alpaka_common::Extent>(search_key.bytes))};
+        // prepare for async required here ?
         search_key.d_ptr = alpaka::getPtrNative(buf);
         search_key.buf_ptr = std::make_shared<ALPAKA_ACCELERATOR_NAMESPACE::AlpakaDeviceBuf<std::byte>>(
           std::move(buf)
