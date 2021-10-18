@@ -2,38 +2,6 @@
 #define HeterogenousCore_AlpakaUtilities_src_CachingHostAllocator_h
 
 /******************************************************************************
- * Copyright (c) 2011, Duane Merrill.  All rights reserved.
- * Copyright (c) 2011-2018, NVIDIA CORPORATION.  All rights reserved.
- *
- * Redistribution and use in source and binary forms, with or without
- * modification, are permitted provided that the following conditions are met:
- *     * Redistributions of source code must retain the above copyright
- *       notice, this list of conditions and the following disclaimer.
- *     * Redistributions in binary form must reproduce the above copyright
- *       notice, this list of conditions and the following disclaimer in the
- *       documentation and/or other materials provided with the distribution.
- *     * Neither the name of the NVIDIA CORPORATION nor the
- *       names of its contributors may be used to endorse or promote products
- *       derived from this software without specific prior written permission.
- *
- * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS" AND
- * ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE IMPLIED
- * WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE ARE
- * DISCLAIMED. IN NO EVENT SHALL NVIDIA CORPORATION BE LIABLE FOR ANY
- * DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES
- * (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
- * LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
- * ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
- * (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
- * SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
- *
- ******************************************************************************/
-
-/**
- * Modified to cache pinned host allocations by Matti Kortelainen
- */
-
-/******************************************************************************
  * Simple caching allocator for pinned host memory allocations. The allocator is
  * thread-safe.
  ******************************************************************************/
@@ -64,11 +32,6 @@ namespace cms::alpakatools::allocator {
  * \par Overview
  * The allocator is thread-safe.  It behaves as follows:
  *
- * To read/write from/to the pinned host memory, one needs to synchronize 
- * anyway. The difference wrt. device memory is that in the CPU all 
- * operations to the device memory are scheduled via the queue, while 
- * for the host memory one can perform operations directly.
- *
  * \par
  * - Allocations are categorized and cached by bin size.  A new allocation request of
  *   a given size will only consider cached allocations within the corresponding bin.
@@ -97,7 +60,7 @@ namespace cms::alpakatools::allocator {
  * and sets a maximum of 6,291,455 cached bytes
  *
  */
-  // template <typename TData>
+  
   struct CachingHostAllocator {
     //---------------------------------------------------------------------
     // Constants
@@ -123,12 +86,13 @@ namespace cms::alpakatools::allocator {
       size_t bytes; // Size of allocation in bytes
       unsigned int bin; // Bin enumeration
    
-      // Constructor (suitable for searching maps for a specific block, given its host buffer)
+      // Constructor (suitable for searching maps for a specific block, given a host buffer)
       BlockDescriptor(alpaka_common::AlpakaHostBuf<std::byte> buffer)
           : buf {std::move(buffer)},
             bytes {0},
             bin {INVALID_BIN} {}
       
+      // Constructor (suitable for searching maps for a block, given the bytes)
       BlockDescriptor(unsigned int block_bin, size_t block_bytes)
         : buf {allocHostBuf<std::byte>(0u)},
           bytes {block_bytes},
@@ -209,7 +173,7 @@ namespace cms::alpakatools::allocator {
     // Fields
     //---------------------------------------------------------------------
 
-    std::mutex mutex;  /// Mutex for thread-safety
+    std::mutex mutex;         /// Mutex for thread-safety
 
     unsigned int bin_growth;  /// Geometric growth factor for bin-sizes
     unsigned int min_bin;     /// Minimum bin enumeration
@@ -219,7 +183,7 @@ namespace cms::alpakatools::allocator {
     size_t max_bin_bytes;     /// Maximum bin size
     size_t max_cached_bytes;  /// Maximum aggregate cached bytes
 
-    bool debug;        /// Whether or not to print (de)allocation events to stdout
+    bool debug;               /// Whether or not to print (de)allocation events to stdout
 
     TotalBytes cached_bytes;     /// Aggregate cached bytes
     CachedBlocks cached_blocks;  /// Set of cached pinned host allocations available for reuse
@@ -280,10 +244,11 @@ namespace cms::alpakatools::allocator {
       // Lock
       std::unique_lock mutex_locker(mutex);
 
-      if (debug)
+      if (debug) {
         printf("Changing max_cached_bytes (%lld -> %lld)\n",
                (long long)this->max_cached_bytes,
                (long long)max_cached_bytes);
+      }
 
       this->max_cached_bytes = max_cached_bytes;
 
@@ -304,8 +269,8 @@ namespace cms::alpakatools::allocator {
 
       // Create a block descriptor for the requested allocation
       bool found = false;
-      auto [search_key_bin, search_key_bytes] = NearestPowerOf(bin_growth, bytes);
-      BlockDescriptor search_key {search_key_bin, search_key_bytes};
+      auto [bin, bin_bytes] = NearestPowerOf(bin_growth, bytes);
+      BlockDescriptor search_key {bin, bin_bytes};
 
       if (search_key.bin > max_bin) {
         // Bin is greater than our maximum bin: allocate the request
@@ -336,17 +301,12 @@ namespace cms::alpakatools::allocator {
           cached_bytes.free -= search_key.bytes;
           cached_bytes.live += search_key.bytes;
 
-          /*if (debug)
+          if (debug) {
             printf(
-                "\tHost reused cached block at %p (%lld bytes) for queue %lld, event %lld on device %lld "
-                "(previously associated with queue %lld, event %lld).\n",
-                search_key.d_ptr,
-                (long long)search_key.bytes,
-                search_key.associated_queue,
-                search_key.ready_event,
-                search_key.device,
-                (long long)block_itr->associated_queue,
-                (long long)block_itr->ready_event);*/
+              "\tHost reused cached block at %p (%lld bytes).\n",
+              alpaka::getPtrNative(search_key.buf),
+              (long long)search_key.bytes);
+          }
 
           cached_blocks.erase(block_itr);
         }
@@ -358,38 +318,33 @@ namespace cms::alpakatools::allocator {
       // Allocate the block if necessary
       if (!found) {
         // TODO: eventually support allocation flags
-        auto buf {allocHostBuf<std::byte>(
-          static_cast<alpaka_common::Extent>(search_key.bytes))};
-        alpaka::prepareForAsyncCopy(buf);
-        search_key.buf = std::move(buf);
-        
+        search_key.buf = allocHostBuf<std::byte>(
+          static_cast<alpaka_common::Extent>(search_key.bytes));
+#if CUDA_VERSION >= 11020
+        alpaka::prepareForAsyncCopy(search_key.buf);
+#endif  
+  
         // Insert into live blocks
         mutex_locker.lock();
         live_blocks.insert(search_key);
         cached_bytes.live += search_key.bytes;
         mutex_locker.unlock();
 
-        /*
-        if (debug)
+        if (debug) {
           printf(
-              "\tHost allocated new host block at %p (%lld bytes associated with queue %lld, event %lld on device "
-              "%lld).\n",
-              search_key.d_ptr,
-              (long long)search_key.bytes,
-              search_key.associated_queue,
-              search_key.ready_event,
-              search_key.device);
-        */
+            "\tHost allocated new host block at %p (%lld bytes).\n",
+            alpaka::getPtrNative(search_key.buf),
+            (long long)search_key.bytes);
+        }
       }
 
-      /*
-      if (debug)
+      if (debug) {
         printf("\t\t%lld available blocks cached (%lld bytes), %lld live blocks outstanding(%lld bytes).\n",
                (long long)cached_blocks.size(),
                (long long)cached_bytes.free,
                (long long)live_blocks.size(),
                (long long)cached_bytes.live);
-      */
+      }
 
       return search_key.buf;
     }
@@ -403,6 +358,7 @@ namespace cms::alpakatools::allocator {
       // Lock
       std::unique_lock<std::mutex> mutex_locker(mutex);
 
+      bool recached = false;
       // Find corresponding block descriptor
       BlockDescriptor search_key {buf};
       auto block_itr = live_blocks.find(search_key);
@@ -414,45 +370,38 @@ namespace cms::alpakatools::allocator {
 
         // Keep the returned allocation if bin is valid and we won't exceed the max cached threshold
         if ((search_key.bin != INVALID_BIN) && (cached_bytes.free + search_key.bytes <= max_cached_bytes)) {
+          recached = true;
           // Insert returned allocation into free blocks
           cached_blocks.insert(search_key);
           cached_bytes.free += search_key.bytes;
-          /*
-          if (debug)
+          
+          if (debug) {
             printf(
-                "\tHost returned %lld bytes from associated queue %lld, event %lld on device %lld.\n\t\t %lld "
-                "available blocks cached (%lld bytes), %lld live blocks outstanding. (%lld bytes)\n",
-                (long long)search_key.bytes,
-                search_key.associated_queue,
-                search_key.ready_event,
-                search_key.device,
-                (long long)cached_blocks.size(),
-                (long long)cached_bytes.free,
-                (long long)live_blocks.size(),
-                (long long)cached_bytes.live);
-          */
+              "\tHost returned %lld bytes.\n\t\t %lld "
+              "available blocks cached (%lld bytes), %lld live blocks outstanding. (%lld bytes)\n",
+              (long long)search_key.bytes,
+              (long long)cached_blocks.size(),
+              (long long)cached_bytes.free,
+              (long long)live_blocks.size(),
+              (long long)cached_bytes.live);  
+          }      
         }
       }
 
       // Unlock
       mutex_locker.unlock();
-
-      /*
-      if (!recached and debug)
+      
+      if (!recached and debug) {
         printf(
-            "\tHost freed %lld bytes from associated queue %lld, event %lld on device %lld.\n\t\t  %lld available "
-            "blocks cached (%lld bytes), %lld live blocks (%lld bytes) outstanding.\n",
-            (long long)search_key.bytes,
-            search_key.associated_queue,
-            search_key.ready_event,
-            search_key.device,
-            (long long)cached_blocks.size(),
-            (long long)cached_bytes.free,
-            (long long)live_blocks.size(),
-            (long long)cached_bytes.live);
-      */
+          "\tHost freed %lld bytes.\n\t\t  %lld available "
+          "blocks cached (%lld bytes), %lld live blocks (%lld bytes) outstanding.\n",
+          (long long)search_key.bytes,
+          (long long)cached_blocks.size(),
+          (long long)cached_bytes.free,
+          (long long)live_blocks.size(),
+          (long long)cached_bytes.live);
+      }  
     }
-
   };
 
   /** @} */  // end group UtilMgmt

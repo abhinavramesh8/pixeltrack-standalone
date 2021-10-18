@@ -14,7 +14,7 @@ namespace cms {
         class HostDeleter {
         public:
           HostDeleter(alpaka_common::AlpakaHostBuf<TData> buffer) 
-            : buf {buffer} {}
+            : buf {std::move(buffer)} {}
 
           void operator()(void* d_ptr) {
             if constexpr (allocator::policy == allocator::Policy::Caching) {
@@ -55,9 +55,11 @@ namespace cms {
           reinterpret_cast<TData*>(d_ptr), host::impl::HostDeleter<std::byte> {buf}};
       } else {
         auto buf = allocHostBuf<TData>(extent);
+#if CUDA_VERSION >= 11020
         if constexpr (allocator::policy == allocator::Policy::Asynchronous) {
           alpaka::prepareForAsyncCopy(buf);
         }
+#endif
         TData* d_ptr = alpaka::getPtrNative(buf);
         return typename host::unique_ptr<TData> {
           d_ptr, host::impl::HostDeleter<TData> {buf}};
