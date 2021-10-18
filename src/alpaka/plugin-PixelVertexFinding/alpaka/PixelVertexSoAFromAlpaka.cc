@@ -57,10 +57,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     auto const& inputData = iEvent.get(tokenAlpaka_);
     auto outputData = cms::alpakatools::make_host_unique<ZVertexSoA>(1u);
     Queue queue(device);
-    auto const inputDataView = cms::alpakatools::createDeviceView<ZVertexSoA>(
-      inputData.get(), 1u);
-    auto outputDataView = cms::alpakatools::createHostView<ZVertexSoA>(
-      outputData.get(), 1u);
+    auto const inputDataView = cms::alpakatools::createDeviceView<ZVertexSoA>(inputData.get(), 1u);
+    auto outputDataView = cms::alpakatools::createHostView<ZVertexSoA>(outputData.get(), 1u);
     alpaka::memcpy(queue, outputDataView, inputDataView, 1u);
     alpaka::wait(queue);
 

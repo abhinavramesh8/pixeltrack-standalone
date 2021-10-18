@@ -30,9 +30,9 @@ namespace cms::alpakatools::allocator {
 
   inline size_t minCachedBytes() {
     size_t ret = std::numeric_limits<size_t>::max();
-    const auto devices {alpaka::getDevs<ALPAKA_ACCELERATOR_NAMESPACE::PltfAcc1>()};
-    for (const auto& device: devices) {
-      const size_t freeMemory {alpaka::getFreeMemBytes(device)};
+    const auto devices{alpaka::getDevs<ALPAKA_ACCELERATOR_NAMESPACE::PltfAcc1>()};
+    for (const auto& device : devices) {
+      const size_t freeMemory{alpaka::getFreeMemBytes(device)};
       ret = std::min(ret, static_cast<size_t>(maxCachedFraction * freeMemory));
     }
     if (maxCachedBytes > 0) {
@@ -59,17 +59,12 @@ namespace cms::alpakatools::allocator {
         } else {
           std::cout << "    " << std::setw(9) << binSize << " B\n";
         }
-        
       }
       std::cout << "  maximum amount of cached memory: " << (minCachedBytes() >> 20) << " MB\n";
     }
 
     // the public interface is thread safe
-    static CachingDeviceAllocator allocator{binGrowth,
-                                            minBin,
-                                            maxBin,
-                                            minCachedBytes(),
-                                            debug};
+    static CachingDeviceAllocator allocator{binGrowth, minBin, maxBin, minCachedBytes(), debug};
     return allocator;
   }
 }  // namespace cms::alpakatools::allocator

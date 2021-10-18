@@ -31,11 +31,7 @@ namespace cms::alpakatools::allocator {
     }
 
     // the public interface is thread safe
-    static CachingHostAllocator allocator{binGrowth,
-                                          minBin,
-                                          maxBin,
-                                          minCachedBytes(),
-                                          debug};
+    static CachingHostAllocator allocator{binGrowth, minBin, maxBin, minCachedBytes(), debug};
     return allocator;
   }
 }  // namespace cms::alpakatools::allocator

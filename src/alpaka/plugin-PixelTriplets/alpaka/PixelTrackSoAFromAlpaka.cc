@@ -76,10 +76,8 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     auto const& inputData = iEvent.get(tokenAlpaka_);
     auto outputData = cms::alpakatools::make_host_unique<pixelTrack::TrackSoA>(1u);
     Queue queue(device);
-    auto const inputDataView = cms::alpakatools::createDeviceView<pixelTrack::TrackSoA>(
-      inputData.get(), 1u);
-    auto outputDataView = cms::alpakatools::createHostView<pixelTrack::TrackSoA>(
-      outputData.get(), 1u);
+    auto const inputDataView = cms::alpakatools::createDeviceView<pixelTrack::TrackSoA>(inputData.get(), 1u);
+    auto outputDataView = cms::alpakatools::createHostView<pixelTrack::TrackSoA>(outputData.get(), 1u);
     alpaka::memcpy(queue, outputDataView, inputDataView, 1u);
     alpaka::wait(queue);
 

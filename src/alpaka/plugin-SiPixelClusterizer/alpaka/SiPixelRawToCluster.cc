@@ -68,8 +68,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
     }
     // get the GPU product already here so that the async transfer can begin
     const auto* gpuMap = hgpuMap.cablingMap();
-    const unsigned char* gpuModulesToUnpack = 
-      iSetup.get<cms::alpakatools::device::unique_ptr<unsigned char>>().get();
+    const unsigned char* gpuModulesToUnpack = iSetup.get<cms::alpakatools::device::unique_ptr<unsigned char>>().get();
     const auto* gpuGains = &(iSetup.get<SiPixelGainForHLTonGPU>());
 
     auto const& fedIds_ = iSetup.get<SiPixelFedIds>().fedIds();

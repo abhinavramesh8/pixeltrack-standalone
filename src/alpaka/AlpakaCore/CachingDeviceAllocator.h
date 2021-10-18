@@ -81,25 +81,27 @@ namespace cms::alpakatools::allocator {
      * Descriptor for device memory allocations
      */
     struct BlockDescriptor {
-      ALPAKA_ACCELERATOR_NAMESPACE::AlpakaDeviceBuf<std::byte> buf; // Device buffer
-      size_t bytes; // Size of allocation in bytes
-      size_t bytesRequested; // CMS: requested allocation size (for monitoring only)
-      unsigned int bin; // Bin enumeration
-      
+      ALPAKA_ACCELERATOR_NAMESPACE::AlpakaDeviceBuf<std::byte> buf;  // Device buffer
+      size_t bytes;                                                  // Size of allocation in bytes
+      size_t bytesRequested;  // CMS: requested allocation size (for monitoring only)
+      unsigned int bin;       // Bin enumeration
+
       // Constructor (suitable for searching maps for a block, given a device and bytes)
-      BlockDescriptor(unsigned int block_bin, size_t block_bytes, size_t bytes_requested, 
-                      const ALPAKA_ACCELERATOR_NAMESPACE::DevAcc1& device) 
-          : buf {alpaka::allocBuf<std::byte, alpaka_common::Idx>(device, 0u)},
-            bytes {block_bytes},
-            bytesRequested {bytes_requested},  // CMS
-            bin {block_bin} {}
+      BlockDescriptor(unsigned int block_bin,
+                      size_t block_bytes,
+                      size_t bytes_requested,
+                      const ALPAKA_ACCELERATOR_NAMESPACE::DevAcc1& device)
+          : buf{alpaka::allocBuf<std::byte, alpaka_common::Idx>(device, 0u)},
+            bytes{block_bytes},
+            bytesRequested{bytes_requested},  // CMS
+            bin{block_bin} {}
 
       // Constructor (suitable for searching maps for a specific block, given a device buffer)
       BlockDescriptor(ALPAKA_ACCELERATOR_NAMESPACE::AlpakaDeviceBuf<std::byte> buffer)
-          : buf {std::move(buffer)},
-            bytes {0},
-            bytesRequested {0},  // CMS
-            bin {INVALID_BIN} {}
+          : buf{std::move(buffer)},
+            bytes{0},
+            bytesRequested{0},  // CMS
+            bin{INVALID_BIN} {}
     };
 
     struct BlockHashByBytes {
@@ -112,8 +114,7 @@ namespace cms::alpakatools::allocator {
 
     struct BlockEqualByBytes {
       bool operator()(const BlockDescriptor& a, const BlockDescriptor& b) const {
-        return (getIdxOfDev(alpaka::getDev(a.buf)) == getIdxOfDev(alpaka::getDev(b.buf)) && 
-                a.bytes == b.bytes);
+        return (getIdxOfDev(alpaka::getDev(a.buf)) == getIdxOfDev(alpaka::getDev(b.buf)) && a.bytes == b.bytes);
       }
     };
 
@@ -127,7 +128,7 @@ namespace cms::alpakatools::allocator {
 
     struct BlockEqualByPtr {
       bool operator()(const BlockDescriptor& a, const BlockDescriptor& b) const {
-        return (getIdxOfDev(alpaka::getDev(a.buf)) == getIdxOfDev(alpaka::getDev(b.buf)) && 
+        return (getIdxOfDev(alpaka::getDev(a.buf)) == getIdxOfDev(alpaka::getDev(b.buf)) &&
                 alpaka::getPtrNative(a.buf) == alpaka::getPtrNative(b.buf));
       }
     };
@@ -197,11 +198,11 @@ namespace cms::alpakatools::allocator {
     size_t max_bin_bytes;     /// Maximum bin size
     size_t max_cached_bytes;  /// Maximum aggregate cached bytes per device
 
-    bool debug;               /// Whether or not to print (de)allocation events to stdout
+    bool debug;  /// Whether or not to print (de)allocation events to stdout
 
-    DeviceCachedBytes cached_bytes; /// Map of device to aggregate cached bytes on that device
-    CachedBlocks cached_blocks;     /// Set of cached device allocations available for reuse
-    BusyBlocks live_blocks;         /// Set of live device allocations currently in use
+    DeviceCachedBytes cached_bytes;  /// Map of device to aggregate cached bytes on that device
+    CachedBlocks cached_blocks;      /// Set of cached device allocations available for reuse
+    BusyBlocks live_blocks;          /// Set of live device allocations currently in use
 
 #endif  // DOXYGEN_SHOULD_SKIP_THIS
 
@@ -239,7 +240,7 @@ namespace cms::alpakatools::allocator {
      * which delineates five bin-sizes: 512B, 4KB, 32KB, 256KB, and 2MB and
      * sets a maximum of 6,291,455 cached bytes per device
      */
-    CachingDeviceAllocator(/*bool skip_cleanup = false, */bool debug = false)
+    CachingDeviceAllocator(/*bool skip_cleanup = false, */ bool debug = false)
         : bin_growth(8),
           min_bin(3),
           max_bin(7),
@@ -276,16 +277,16 @@ namespace cms::alpakatools::allocator {
      * Once freed, the allocation becomes available immediately for reuse.
      */
     auto DeviceAllocate(
-        size_t bytes,                                        ///< [in] Minimum no. of bytes for the allocation
-        const ALPAKA_ACCELERATOR_NAMESPACE::DevAcc1& device) ///< [in] The device to be associated with this allocation
+        size_t bytes,                                         ///< [in] Minimum no. of bytes for the allocation
+        const ALPAKA_ACCELERATOR_NAMESPACE::DevAcc1& device)  ///< [in] The device to be associated with this allocation
     {
       std::unique_lock<std::mutex> mutex_locker(mutex, std::defer_lock);
       int device_idx = getIdxOfDev(device);
-      
+
       // Create a block descriptor for the requested allocation
       bool found = false;
       auto [bin, bin_bytes] = NearestPowerOf(bin_growth, bytes);
-      BlockDescriptor search_key {bin, bin_bytes, bytes, device};
+      BlockDescriptor search_key{bin, bin_bytes, bytes, device};
 
       if (search_key.bin > max_bin) {
         // Bin is greater than our maximum bin: allocate the request
@@ -314,16 +315,15 @@ namespace cms::alpakatools::allocator {
           // Remove from free blocks
           cached_bytes[device_idx].free -= search_key.bytes;
           cached_bytes[device_idx].live += search_key.bytes;
-          cached_bytes[device_idx].liveRequested += search_key.bytesRequested; // CMS 
+          cached_bytes[device_idx].liveRequested += search_key.bytesRequested;  // CMS
 
           if (debug) {
             // CMS: improved debug message
             // CMS: use raw printf
-            printf(
-              "\tDevice %d reused cached block at %p (%lld bytes).\n",
-              device_idx,
-              alpaka::getPtrNative(search_key.buf),
-              (long long)search_key.bytes);
+            printf("\tDevice %d reused cached block at %p (%lld bytes).\n",
+                   device_idx,
+                   alpaka::getPtrNative(search_key.buf),
+                   (long long)search_key.bytes);
           }
 
           cached_blocks.erase(block_itr);
@@ -335,18 +335,18 @@ namespace cms::alpakatools::allocator {
       // Allocate the block if necessary
       if (!found) {
         search_key.buf = alpaka::allocBuf<std::byte, alpaka_common::Idx>(
-          device, static_cast<alpaka_common::Extent>(search_key.bytes));
+            device, static_cast<alpaka_common::Extent>(search_key.bytes));
 #if CUDA_VERSION >= 11020
         alpaka::prepareForAsyncCopy(search_key.buf);
 #endif
-        
+
         // Insert into live blocks
         mutex_locker.lock();
         live_blocks.insert(search_key);
         cached_bytes[device_idx].live += search_key.bytes;
         cached_bytes[device_idx].liveRequested += search_key.bytesRequested;  // CMS
         mutex_locker.unlock();
-        
+
         if (debug) {
           // CMS: improved debug message
           // CMS: use raw printf
@@ -365,22 +365,21 @@ namespace cms::alpakatools::allocator {
                (long long)live_blocks.size(),
                (long long)cached_bytes[device_idx].live);
       }
-      
-      return search_key.buf;  
+
+      return search_key.buf;
     }
 
     /**
      * \brief Frees a live allocation of device memory on the specified device, returning it to the allocator.
      */
-    void DeviceFree(const ALPAKA_ACCELERATOR_NAMESPACE::AlpakaDeviceBuf<std::byte>& buf) 
-    {
+    void DeviceFree(const ALPAKA_ACCELERATOR_NAMESPACE::AlpakaDeviceBuf<std::byte>& buf) {
       // Lock
       std::unique_lock<std::mutex> mutex_locker(mutex);
 
       bool recached = false;
       int device_idx = getIdxOfDev(alpaka::getDev(buf));
       // Find corresponding block descriptor
-      BlockDescriptor search_key {buf};
+      BlockDescriptor search_key{buf};
       auto block_itr = live_blocks.find(search_key);
       if (block_itr != live_blocks.end()) {
         // Remove from live blocks
@@ -400,15 +399,15 @@ namespace cms::alpakatools::allocator {
             // CMS: improved debug message
             // CMS: use raw printf
             printf(
-              "\tDevice %d returned %lld bytes at %p.\n\t\t %lld available "
-              "blocks cached (%lld bytes), %lld live blocks outstanding. (%lld bytes)\n",
-              device_idx,
-              (long long)search_key.bytes,
-              alpaka::getPtrNative(search_key.buf),
-              (long long)cached_blocks.size(),
-              (long long)cached_bytes[device_idx].free,
-              (long long)live_blocks.size(),
-              (long long)cached_bytes[device_idx].live);
+                "\tDevice %d returned %lld bytes at %p.\n\t\t %lld available "
+                "blocks cached (%lld bytes), %lld live blocks outstanding. (%lld bytes)\n",
+                device_idx,
+                (long long)search_key.bytes,
+                alpaka::getPtrNative(search_key.buf),
+                (long long)cached_blocks.size(),
+                (long long)cached_bytes[device_idx].free,
+                (long long)live_blocks.size(),
+                (long long)cached_bytes[device_idx].live);
           }
         }
       }
@@ -419,15 +418,15 @@ namespace cms::alpakatools::allocator {
       if (!recached and debug) {
         // CMS: improved debug message
         printf(
-          "\tDevice %d freed %lld bytes at %p.\n\t\t  %lld available "
-          "blocks cached (%lld bytes), %lld live blocks (%lld bytes) outstanding.\n",
-          device_idx,
-          (long long)search_key.bytes,
-          alpaka::getPtrNative(search_key.buf),
-          (long long)cached_blocks.size(),
-          (long long)cached_bytes[device_idx].free,
-          (long long)live_blocks.size(),
-          (long long)cached_bytes[device_idx].live);
+            "\tDevice %d freed %lld bytes at %p.\n\t\t  %lld available "
+            "blocks cached (%lld bytes), %lld live blocks (%lld bytes) outstanding.\n",
+            device_idx,
+            (long long)search_key.bytes,
+            alpaka::getPtrNative(search_key.buf),
+            (long long)cached_blocks.size(),
+            (long long)cached_bytes[device_idx].free,
+            (long long)live_blocks.size(),
+            (long long)cached_bytes[device_idx].live);
       }
     }
 

@@ -10,7 +10,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   public:
     SiPixelDigisAlpaka() = default;
     explicit SiPixelDigisAlpaka(size_t maxFedWords)
-        : maxFedWords_ {maxFedWords},
+        : maxFedWords_{maxFedWords},
           xx_d{cms::alpakatools::make_device_unique<uint16_t>(maxFedWords)},
           yy_d{cms::alpakatools::make_device_unique<uint16_t>(maxFedWords)},
           adc_d{cms::alpakatools::make_device_unique<uint16_t>(maxFedWords)},

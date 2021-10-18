@@ -60,7 +60,7 @@ namespace cms::alpakatools::allocator {
  * and sets a maximum of 6,291,455 cached bytes
  *
  */
-  
+
   struct CachingHostAllocator {
     //---------------------------------------------------------------------
     // Constants
@@ -82,37 +82,29 @@ namespace cms::alpakatools::allocator {
      * Descriptor for pinned host memory allocations
      */
     struct BlockDescriptor {
-      alpaka_common::AlpakaHostBuf<std::byte> buf; // Host buffer
-      size_t bytes; // Size of allocation in bytes
-      unsigned int bin; // Bin enumeration
-   
+      alpaka_common::AlpakaHostBuf<std::byte> buf;  // Host buffer
+      size_t bytes;                                 // Size of allocation in bytes
+      unsigned int bin;                             // Bin enumeration
+
       // Constructor (suitable for searching maps for a specific block, given a host buffer)
       BlockDescriptor(alpaka_common::AlpakaHostBuf<std::byte> buffer)
-          : buf {std::move(buffer)},
-            bytes {0},
-            bin {INVALID_BIN} {}
-      
+          : buf{std::move(buffer)}, bytes{0}, bin{INVALID_BIN} {}
+
       // Constructor (suitable for searching maps for a block, given the bytes)
       BlockDescriptor(unsigned int block_bin, size_t block_bytes)
-        : buf {allocHostBuf<std::byte>(0u)},
-          bytes {block_bytes},
-          bin {block_bin} {}
+          : buf{allocHostBuf<std::byte>(0u)}, bytes{block_bytes}, bin{block_bin} {}
     };
 
     struct BlockHashByBytes {
-      size_t operator()(const BlockDescriptor& descriptor) const {
-        return std::hash<size_t>{}(descriptor.bytes);
-      }
+      size_t operator()(const BlockDescriptor& descriptor) const { return std::hash<size_t>{}(descriptor.bytes); }
     };
 
     struct BlockEqualByBytes {
-      bool operator()(const BlockDescriptor& a, const BlockDescriptor& b) const {
-        return (a.bytes == b.bytes);
-      }
+      bool operator()(const BlockDescriptor& a, const BlockDescriptor& b) const { return (a.bytes == b.bytes); }
     };
 
     struct BlockHashByPtr {
-      size_t operator()(const BlockDescriptor& descriptor) const { 
+      size_t operator()(const BlockDescriptor& descriptor) const {
         return std::hash<const std::byte*>{}(alpaka::getPtrNative(descriptor.buf));
       }
     };
@@ -173,7 +165,7 @@ namespace cms::alpakatools::allocator {
     // Fields
     //---------------------------------------------------------------------
 
-    std::mutex mutex;         /// Mutex for thread-safety
+    std::mutex mutex;  /// Mutex for thread-safety
 
     unsigned int bin_growth;  /// Geometric growth factor for bin-sizes
     unsigned int min_bin;     /// Minimum bin enumeration
@@ -183,7 +175,7 @@ namespace cms::alpakatools::allocator {
     size_t max_bin_bytes;     /// Maximum bin size
     size_t max_cached_bytes;  /// Maximum aggregate cached bytes
 
-    bool debug;               /// Whether or not to print (de)allocation events to stdout
+    bool debug;  /// Whether or not to print (de)allocation events to stdout
 
     TotalBytes cached_bytes;     /// Aggregate cached bytes
     CachedBlocks cached_blocks;  /// Set of cached pinned host allocations available for reuse
@@ -261,16 +253,14 @@ namespace cms::alpakatools::allocator {
      *
      * Once freed, the allocation becomes available immediately for reuse.
      */
-    auto HostAllocate(
-      size_t bytes ///< [in] Minimum no. of bytes for the allocation
-    )
-    {
+    auto HostAllocate(size_t bytes  ///< [in] Minimum no. of bytes for the allocation
+    ) {
       std::unique_lock<std::mutex> mutex_locker(mutex, std::defer_lock);
 
       // Create a block descriptor for the requested allocation
       bool found = false;
       auto [bin, bin_bytes] = NearestPowerOf(bin_growth, bytes);
-      BlockDescriptor search_key {bin, bin_bytes};
+      BlockDescriptor search_key{bin, bin_bytes};
 
       if (search_key.bin > max_bin) {
         // Bin is greater than our maximum bin: allocate the request
@@ -302,10 +292,9 @@ namespace cms::alpakatools::allocator {
           cached_bytes.live += search_key.bytes;
 
           if (debug) {
-            printf(
-              "\tHost reused cached block at %p (%lld bytes).\n",
-              alpaka::getPtrNative(search_key.buf),
-              (long long)search_key.bytes);
+            printf("\tHost reused cached block at %p (%lld bytes).\n",
+                   alpaka::getPtrNative(search_key.buf),
+                   (long long)search_key.bytes);
           }
 
           cached_blocks.erase(block_itr);
@@ -318,12 +307,11 @@ namespace cms::alpakatools::allocator {
       // Allocate the block if necessary
       if (!found) {
         // TODO: eventually support allocation flags
-        search_key.buf = allocHostBuf<std::byte>(
-          static_cast<alpaka_common::Extent>(search_key.bytes));
+        search_key.buf = allocHostBuf<std::byte>(static_cast<alpaka_common::Extent>(search_key.bytes));
 #if CUDA_VERSION >= 11020
         alpaka::prepareForAsyncCopy(search_key.buf);
-#endif  
-  
+#endif
+
         // Insert into live blocks
         mutex_locker.lock();
         live_blocks.insert(search_key);
@@ -331,10 +319,9 @@ namespace cms::alpakatools::allocator {
         mutex_locker.unlock();
 
         if (debug) {
-          printf(
-            "\tHost allocated new host block at %p (%lld bytes).\n",
-            alpaka::getPtrNative(search_key.buf),
-            (long long)search_key.bytes);
+          printf("\tHost allocated new host block at %p (%lld bytes).\n",
+                 alpaka::getPtrNative(search_key.buf),
+                 (long long)search_key.bytes);
         }
       }
 
@@ -360,7 +347,7 @@ namespace cms::alpakatools::allocator {
 
       bool recached = false;
       // Find corresponding block descriptor
-      BlockDescriptor search_key {buf};
+      BlockDescriptor search_key{buf};
       auto block_itr = live_blocks.find(search_key);
       if (block_itr != live_blocks.end()) {
         // Remove from live blocks
@@ -374,38 +361,38 @@ namespace cms::alpakatools::allocator {
           // Insert returned allocation into free blocks
           cached_blocks.insert(search_key);
           cached_bytes.free += search_key.bytes;
-          
+
           if (debug) {
             printf(
-              "\tHost returned %lld bytes.\n\t\t %lld "
-              "available blocks cached (%lld bytes), %lld live blocks outstanding. (%lld bytes)\n",
-              (long long)search_key.bytes,
-              (long long)cached_blocks.size(),
-              (long long)cached_bytes.free,
-              (long long)live_blocks.size(),
-              (long long)cached_bytes.live);  
-          }      
+                "\tHost returned %lld bytes.\n\t\t %lld "
+                "available blocks cached (%lld bytes), %lld live blocks outstanding. (%lld bytes)\n",
+                (long long)search_key.bytes,
+                (long long)cached_blocks.size(),
+                (long long)cached_bytes.free,
+                (long long)live_blocks.size(),
+                (long long)cached_bytes.live);
+          }
         }
       }
 
       // Unlock
       mutex_locker.unlock();
-      
+
       if (!recached and debug) {
         printf(
-          "\tHost freed %lld bytes.\n\t\t  %lld available "
-          "blocks cached (%lld bytes), %lld live blocks (%lld bytes) outstanding.\n",
-          (long long)search_key.bytes,
-          (long long)cached_blocks.size(),
-          (long long)cached_bytes.free,
-          (long long)live_blocks.size(),
-          (long long)cached_bytes.live);
-      }  
+            "\tHost freed %lld bytes.\n\t\t  %lld available "
+            "blocks cached (%lld bytes), %lld live blocks (%lld bytes) outstanding.\n",
+            (long long)search_key.bytes,
+            (long long)cached_blocks.size(),
+            (long long)cached_bytes.free,
+            (long long)live_blocks.size(),
+            (long long)cached_bytes.live);
+      }
     }
   };
 
   /** @} */  // end group UtilMgmt
 
-} // namespace cms::alpakatools::allocator
+}  // namespace cms::alpakatools::allocator
 
 #endif

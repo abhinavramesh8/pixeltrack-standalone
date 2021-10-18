@@ -126,10 +126,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
 
     auto const d_clusInModuleView =
         cms::alpakatools::createDeviceView<uint32_t>(clusters.clusInModule(), gpuClustering::MaxNumModules);
-    auto h_clusInModulePtr {cms::alpakatools::make_host_unique<uint32_t>(gpuClustering::MaxNumModules)};
-    auto h_clusInModule {h_clusInModulePtr.get()};
-    auto h_clusInModuleView {cms::alpakatools::createHostView<uint32_t>(
-      h_clusInModule, gpuClustering::MaxNumModules)};
+    auto h_clusInModulePtr{cms::alpakatools::make_host_unique<uint32_t>(gpuClustering::MaxNumModules)};
+    auto h_clusInModule{h_clusInModulePtr.get()};
+    auto h_clusInModuleView{cms::alpakatools::createHostView<uint32_t>(h_clusInModule, gpuClustering::MaxNumModules)};
     alpaka::memcpy(queue, h_clusInModuleView, d_clusInModuleView, gpuClustering::MaxNumModules);
 
     auto const h_lxPtr = hits.xlToHostAsync(queue);

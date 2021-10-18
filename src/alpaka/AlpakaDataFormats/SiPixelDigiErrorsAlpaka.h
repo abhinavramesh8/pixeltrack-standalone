@@ -13,9 +13,9 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
   public:
     SiPixelDigiErrorsAlpaka() = default;
     explicit SiPixelDigiErrorsAlpaka(size_t maxFedWords, PixelFormatterErrors errors)
-        : data_d {cms::alpakatools::make_device_unique<PixelErrorCompact>(maxFedWords)},
-          error_d {cms::alpakatools::make_device_unique<cms::alpakatools::SimpleVector<PixelErrorCompact>>(1u)},
-          error_h {cms::alpakatools::make_host_unique<cms::alpakatools::SimpleVector<PixelErrorCompact>>(1u)},
+        : data_d{cms::alpakatools::make_device_unique<PixelErrorCompact>(maxFedWords)},
+          error_d{cms::alpakatools::make_device_unique<cms::alpakatools::SimpleVector<PixelErrorCompact>>(1u)},
+          error_h{cms::alpakatools::make_host_unique<cms::alpakatools::SimpleVector<PixelErrorCompact>>(1u)},
           formatterErrors_h{std::move(errors)} {
       auto perror_h = error_h.get();
       perror_h->construct(maxFedWords, data_d.get());
@@ -23,11 +23,11 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       assert(perror_h->capacity() == static_cast<int>(maxFedWords));
 
       // TO DO: nothing really async in here for now... Pass the queue in constructor argument instead, and don't wait anymore!
-      Queue queue {device};
-      auto error_h_view = cms::alpakatools::createHostView<cms::alpakatools::SimpleVector<PixelErrorCompact>>(
-        error_h.get(), 1u);
-      auto error_d_view = cms::alpakatools::createDeviceView<cms::alpakatools::SimpleVector<PixelErrorCompact>>(
-        error_d.get(), 1u);
+      Queue queue{device};
+      auto error_h_view =
+          cms::alpakatools::createHostView<cms::alpakatools::SimpleVector<PixelErrorCompact>>(error_h.get(), 1u);
+      auto error_d_view =
+          cms::alpakatools::createDeviceView<cms::alpakatools::SimpleVector<PixelErrorCompact>>(error_d.get(), 1u);
       alpaka::memcpy(queue, error_d_view, error_h_view, 1u);
       alpaka::wait(queue);
     }

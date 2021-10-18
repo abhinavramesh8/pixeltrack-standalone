@@ -17,14 +17,14 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
         cms::alpakatools::make_workdiv(Vec1::all(numberOfBlocks / 4), Vec1::all(blockSize));
 
     //  Fit internals
-    auto hitsGPU_ = cms::alpakatools::make_device_unique<double>(
-      maxNumberOfConcurrentFits_ * sizeof(Rfit::Matrix3xNd<4>) / sizeof(double));
+    auto hitsGPU_ = cms::alpakatools::make_device_unique<double>(maxNumberOfConcurrentFits_ *
+                                                                 sizeof(Rfit::Matrix3xNd<4>) / sizeof(double));
 
-    auto hits_geGPU_ = cms::alpakatools::make_device_unique<float>(
-      maxNumberOfConcurrentFits_ * sizeof(Rfit::Matrix6x4f) / sizeof(float));
+    auto hits_geGPU_ = cms::alpakatools::make_device_unique<float>(maxNumberOfConcurrentFits_ *
+                                                                   sizeof(Rfit::Matrix6x4f) / sizeof(float));
 
-    auto fast_fit_resultsGPU_ = cms::alpakatools::make_device_unique<double>(
-      maxNumberOfConcurrentFits_ * sizeof(Rfit::Vector4d) / sizeof(double));
+    auto fast_fit_resultsGPU_ = cms::alpakatools::make_device_unique<double>(maxNumberOfConcurrentFits_ *
+                                                                             sizeof(Rfit::Vector4d) / sizeof(double));
 
     for (uint32_t offset = 0; offset < maxNumberOfTuples; offset += maxNumberOfConcurrentFits_) {
       // fit triplets

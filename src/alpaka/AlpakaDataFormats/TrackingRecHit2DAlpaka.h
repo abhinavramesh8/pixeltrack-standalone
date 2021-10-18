@@ -71,7 +71,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       SET(m_hitsLayerStart);
       SET(m_hist);
 #undef SET
-      Queue queue {device};
+      Queue queue{device};
 
       // SoA view on device:
       auto view_h{cms::alpakatools::createHostView<TrackingRecHit2DSOAView>(&view, 1u)};

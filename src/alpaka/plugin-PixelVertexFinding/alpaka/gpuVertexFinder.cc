@@ -106,8 +106,7 @@ namespace ALPAKA_ACCELERATOR_NAMESPACE {
       // std::cout << "producing Vertices on GPU" << std::endl;
       assert(tksoa);
 
-      ZVertexAlpaka vertices{cms::alpakatools::make_device_unique<ZVertexSoA>(
-        1u)};
+      ZVertexAlpaka vertices{cms::alpakatools::make_device_unique<ZVertexSoA>(1u)};
       auto* soa = vertices.get();
       assert(soa);
 
